@@ -35,6 +35,22 @@ void *msg_send_thread(thread_params *params);
 void *msg_recv_thread(thread_params *params);
 
 /**
+ * Write a buffer to a remote host via RDMA a specified amount of times and measures the time.
+ *
+ * @return The measured time in nanoseconds
+ */
+void *rdma_write_send_thread(thread_params *params);
+
+/**
+ * Wait for a remote host to finish writing via RDMA and measures the time.
+ *
+ * When the remote host starts writing, it sends 'start' via TCP and when it has finished, it sends 'close'.
+ *
+ * @return The measured time in nanoseconds
+ */
+void *rdma_write_recv_thread(thread_params *params);
+
+/**
  * Set the affinity of the current thread to a single CPU.
  *
  * @param log_name The name to be used in log-entries, that are produced by this function
