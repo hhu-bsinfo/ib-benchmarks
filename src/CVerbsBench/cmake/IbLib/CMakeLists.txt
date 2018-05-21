@@ -7,7 +7,8 @@ set(SOURCE_FILES
         ${CVERBSBENCH_SRC_DIR}/IbLib/ib_device.c
         ${CVERBSBENCH_SRC_DIR}/IbLib/ib_perf_counter.c
         ${CVERBSBENCH_SRC_DIR}/IbLib/ib_perf_counter_compat.c
-        ${CVERBSBENCH_SRC_DIR}/IbLib/ib_mem_reg.c)
+        ${CVERBSBENCH_SRC_DIR}/IbLib/ib_mem_reg.c
+        ${CVERBSBENCH_SRC_DIR}/IbLib/ib_prot_dom.c)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
 
