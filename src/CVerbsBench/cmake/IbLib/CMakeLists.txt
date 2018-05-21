@@ -10,7 +10,8 @@ set(SOURCE_FILES
         ${CVERBSBENCH_SRC_DIR}/IbLib/ib_mem_reg.c
         ${CVERBSBENCH_SRC_DIR}/IbLib/ib_prot_dom.c
         ${CVERBSBENCH_SRC_DIR}/IbLib/ib_comp_queue.c
-        ${CVERBSBENCH_SRC_DIR}/IbLib/ib_shared_recv_queue.c)
+        ${CVERBSBENCH_SRC_DIR}/IbLib/ib_shared_recv_queue.c
+        ${CVERBSBENCH_SRC_DIR}/IbLib/ib_queue_pair.c)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
 
