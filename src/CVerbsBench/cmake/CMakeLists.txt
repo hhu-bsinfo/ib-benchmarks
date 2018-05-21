@@ -21,3 +21,4 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c99 -Wall")
 
 # Add subdirectories
 add_subdirectory(IbLib)
+add_subdirectory(CVerbsBench)
