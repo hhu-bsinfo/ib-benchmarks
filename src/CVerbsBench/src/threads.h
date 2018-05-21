@@ -51,6 +51,20 @@ void *rdma_write_send_thread(thread_params *params);
 void *rdma_write_recv_thread(thread_params *params);
 
 /**
+ * Server thread for the pingpong benchmark.
+ *
+ * @return The measured time in nanoseconds.
+ */
+void *pingpong_server_thread(thread_params *params);
+
+/**
+ * Client thread for the pingpong benchmark.
+ *
+ * @return The measured time in nanoseconds.
+ */
+void *pingpong_client_thread(thread_params *params);
+
+/**
  * Set the affinity of the current thread to a single CPU.
  *
  * @param log_name The name to be used in log-entries, that are produced by this function
