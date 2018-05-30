@@ -1,0 +1,62 @@
+/** \mainpage JSocketBench
+ *
+ * \section Build
+ *
+ * JSocketBench can be built using Gradle.\n
+ * Make sure, that the ibverbs-library and ibmad-library are installed on your system, as they are required for reading the Infiniband perfomance counters.\n
+ * \n
+ * On a Debian-based system, you can run these commands to build the project:\n
+ * \code{.sh}
+ * sudo apt install libibverbs-dev libibmad-dev libibumad-dev
+ * ./gradlew build
+ * \endcode
+ *
+ * \section Usage
+ *
+ * Usage: java -jar JSocketBench.jar [OPTION...]\n
+ * Available options:\n
+ * <ul>
+ * <li>-m, --mode\n
+ * <ul>
+ *      <li>Set the operating mode (server/client). This is a required option!\n
+ * </ul>
+ * <li>-r, --remote\n
+ * <ul>
+ *     <li>Set the remote hostname. This is a required option when the program is running as a client!\n
+ * </ul>
+ * <li>-b, --benchmark\n
+ * <ul>
+ *     <li>Set the benchmark to be executed. Available benchmarks are: 'unidirectional', 'bidirectional' and 'pingpong' (Default: 'unidirectional').\n
+ * </ul>
+ * <li>-s, --size\n
+ * <ul>
+ *     <li>Set the message size in bytes (Default: 1024).\n
+ * </ul>
+ * <li>-c, --count\n
+ * <ul>
+ *     <li>Set the amount of messages to be sent (Default: 1000000).\n
+ * </ul>
+ * <li>-p, --port\n
+ * <ul>
+ *     <li>Set the TCP-port to be used for the connection (Default: 8888).\n
+ * </ul> 
+ * <li>-rs, --raw-statistics\n
+ * <ul>
+ *     <li>Show infiniband perfomance counters 
+ *     <ul>
+ *         <li>'mad'    = Use libibmad to get performance counters (requires root-privileges!)\n
+ *         <li>'compat' = Use filesystem to get performance counters\n"
+ *         <li>'off'    = Don't show performance counters (Default).\n"
+ * </ul>
+ * <li>-v, --verbosity\n
+ * <ul>
+ *     <li>Set the verbosity level: 
+ *     <ul>
+ *         <li>0 = Fatal errors and raw results,\n
+ *         <li>1 = Fatal errors formatted results,\n
+ *         <li>2 = All errors and formatted results,\n
+ *         <li>3 = All errors/warnings and formatted results,\n
+ *         <li>4 = All log messages and formatted results (Default).\n
+ * </ul>
+ * </ul>
+ */ 
