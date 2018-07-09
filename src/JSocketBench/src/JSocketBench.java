@@ -287,7 +287,7 @@ public class JSocketBench {
                 "                             1 = Fatal errors formatted results,\n" +
                 "                             2 = All errors and formatted results,\n" +
                 "                             3 = All errors/warnings and formatted results,\n" +
-                "                             4 = All log messages and formatted results (Default)\n");
+                "                             4 = All log messages and formatted results (Default).\n");
     }
 
     /**
