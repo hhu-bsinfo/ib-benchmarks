@@ -1,3 +1,5 @@
+import org.gradle.internal.jvm.Jvm
+
 plugins {
     id 'java'
 }
@@ -5,7 +7,41 @@ plugins {
 sourceCompatibility = 1.8
 sourceSets.main.java.srcDirs = ['src']
 
+apply plugin: 'cpp'
+
+model {
+    components {
+        IbPerfCounter(NativeLibrarySpec) {
+            sources {
+                cpp {
+                    source {
+                        srcDir "src/IbPerfCounter"
+                        include "**/*.cpp"
+                    }
+
+                    exportedHeaders {
+                        srcDirs "src/IbPerfCounter",
+                                "${Jvm.current().javaHome}/include",
+                                "${Jvm.current().javaHome}/include/linux"
+                    }
+                }
+            }
+
+            binaries.all {
+                cppCompiler.args << "-std=c++11"
+                cppCompiler.args << "-I/usr/include/infiniband"
+                cppCompiler.args << "-libverbs"
+                cppCompiler.args << "-libmad"
+            }
+        }
+    }
+}
+
 jar {
+    from('build/libs/ibPerfCounter/shared/libIbPerfCounter.so') {
+        include 'libIbPerfCounter.so'
+    }
+
     manifest {
         attributes 'Main-Class': 'JVerbsBench'
     }
@@ -13,6 +49,14 @@ jar {
 
 repositories {
     mavenCentral()
+}
+
+task testHome () {
+    println("${Jvm.current().javaHome}")
+}
+
+task wrapper (type: Wrapper) {
+    gradleVersion = "4.8.1"
 }
 
 dependencies {
