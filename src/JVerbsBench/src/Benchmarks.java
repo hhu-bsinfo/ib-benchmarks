@@ -1,5 +1,6 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 
 /**
  * Contains the benchmarks.
@@ -336,6 +337,8 @@ class Benchmarks {
 
     /**
 >>>>>>> 8d5b824...  s jvbench
+=======
+>>>>>>> 052e058... JVerbsBench: Implement rdma benchmark
      * Get the measured send time.
      */
     long getSendTime() {
