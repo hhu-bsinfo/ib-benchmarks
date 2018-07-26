@@ -242,6 +242,7 @@ class Connection {
         }
 
         try {
+            Thread.sleep(1000);
             socket = new Socket();
 
             if(bindAddress == null || bindAddress.isEmpty()) {
