@@ -7,16 +7,16 @@ plugins {
 sourceCompatibility = 1.8
 sourceSets.main.java.srcDirs = ['src']
 
-apply plugin: 'cpp'
+apply plugin: 'c'
 
 model {
     components {
         IbPerfCounter(NativeLibrarySpec) {
             sources {
-                cpp {
+                c {
                     source {
                         srcDir "src/IbPerfCounter"
-                        include "**/*.cpp"
+                        include "**/*.c"
                     }
 
                     exportedHeaders {
@@ -28,14 +28,16 @@ model {
             }
 
             binaries.all {
-                cppCompiler.args << "-std=c++11"
-                cppCompiler.args << "-I/usr/include/infiniband"
-                cppCompiler.args << "-libverbs"
-                cppCompiler.args << "-libmad"
+                cCompiler.args << "-std=c99"
+                cCompiler.args << "-I/usr/include/infiniband"
+                linker.args << "-libverbs"
+                linker.args << "-libmad"
             }
         }
     }
 }
+
+compileJava.dependsOn "IbPerfCounterSharedLibrary"
 
 jar {
     from('build/libs/ibPerfCounter/shared/libIbPerfCounter.so') {
@@ -52,7 +54,7 @@ repositories {
 }
 
 task wrapper (type: Wrapper) {
-    gradleVersion = "4.8.1"
+    gradleVersion = "4.9"
 }
 
 dependencies {

@@ -1,21 +1,17 @@
-#include "IbPerfCounter.h"
+#include "ib_perf_counter.h"
+#include "log.h"
 
-IbPerfCounter::IbPerfCounter(uint16_t lid, uint8_t portNum) : m_lid(lid),
-                                                            m_portNum(portNum),
-                                                            m_linkWidth(0),
-                                                            m_madPort(nullptr),
-                                                            m_portId({0}),
-                                                            m_xmitDataBytes(0),
-                                                            m_rcvDataBytes(0),
-                                                            m_xmitPkts(0),
-                                                            m_rcvPkts(0)
-{
+void init_perf_counter(ib_perf_counter *perf_counter, ib_device *device) {
+    LOG_INFO("PERF COUNTER", "Initializing performance counters...")
+
     uint8_t pmaQueryBuf[QUERY_BUF_SIZE];
     uint8_t smpQueryBuf[IB_SMP_DATA_SIZE];
     int mgmt_classes[3] = {IB_SMI_CLASS, IB_SA_CLASS, IB_PERFORMANCE_CLASS};
 
     memset(pmaQueryBuf, 0, sizeof(pmaQueryBuf));
     memset(smpQueryBuf, 0, sizeof(smpQueryBuf));
+
+    perf_counter->device = device;
 
     // Open a MAD-port. mad_rpc_open_port takes the following parameters:
     //
@@ -25,62 +21,32 @@ IbPerfCounter::IbPerfCounter(uint16_t lid, uint8_t portNum) : m_lid(lid),
     //           Passing a zero works fine. I guess, it then uses a default value.
     // mgmt_classes: I guess, this array is used to declare the fields, that we want to access.
     // num_classes: The amount of management-classes.
-    m_madPort = mad_rpc_open_port(nullptr, 0, mgmt_classes, 3);
+    perf_counter->mad_port = mad_rpc_open_port(NULL, 0, mgmt_classes, 3);
 
-    if (m_madPort == nullptr) {
-        throw std::runtime_error("MAD: Failed to open port! (mad_rpc_open_port failed)");
+    if (perf_counter->mad_port == NULL) {
+        LOG_ERROR_AND_EXIT("PERF COUNTER", "Failed to open MAD-port! (mad_rpc_open_port failed)");
     }
 
-    // Once the MAD-port has been opened, we can use ib_portid_set to initialize m_portId.
+    // Once the MAD-port has been opened, we can use ib_portid_set to initialize portid.
     // It takes the following parameters:
     //
     // portid: A pointer to the ib_portid_t-struct, that shall be initialized.
     // lid: The device's local id.
     // qp: I guess, one can set this value to query only one specific queue pair. Setting it to 0 works fine for me.
     // qkey: Again, setting this to 0 works flawlessy.
-    ib_portid_set(&m_portId, m_lid, 0, 0);
+    ib_portid_set(&perf_counter->portid, perf_counter->device->lid, 0, 0);
 
-    // Query the Subnet Management Agent for device-information. We do this to get the port's link width.
-    // This function works similar to pma_query_via() (see above).
-    if (!smp_query_via(smpQueryBuf, &m_portId, IB_ATTR_PORT_INFO, 0, 0, m_madPort)) {
-        mad_rpc_close_port(m_madPort);
-        throw std::runtime_error("MAD: Failed to query device information! (smp_query_via failed)");
-    }
-
-    mad_decode_field(smpQueryBuf, IB_PORT_LINK_WIDTH_ACTIVE_F, &m_linkWidth);
-
-    switch (m_linkWidth) {
-        case 1:
-            m_linkWidth = 1;
-            break;
-        case 2:
-            m_linkWidth = 4;
-            break;
-        case 4:
-            m_linkWidth = 8;
-            break;
-        case 8:
-            m_linkWidth = 12;
-            break;
-        default:
-            m_linkWidth = 1;
-            break;
-    }
+    LOG_INFO("PERF COUNTER", "Finished initializing performance counters!");
 }
 
-IbPerfCounter::~IbPerfCounter() {
-    // Close the MAD-port.
-    mad_rpc_close_port(m_madPort);
-}
-
-void IbPerfCounter::ResetCounters() {
+void reset_counters(ib_perf_counter *perf_counter) {
     char resetBuf[RESET_BUF_SIZE];
     memset(resetBuf, 0, sizeof(resetBuf));
 
-    m_xmitDataBytes = 0;
-    m_rcvDataBytes = 0;
-    m_xmitPkts = 0;
-    m_rcvPkts = 0;
+    perf_counter->xmit_data_bytes = 0;
+    perf_counter->rcv_data_bytes = 0;
+    perf_counter->xmit_pkts = 0;
+    perf_counter->rcv_pkts = 0;
 
     // Resetting the performance counters can be accomplished by calling performance_reset_via().
     // It takes the following parameters:
@@ -94,27 +60,27 @@ void IbPerfCounter::ResetCounters() {
     // id: The class of counters that shall be resetted. IB_GSI_PORT_COUNTERS are the 32-bit performance counters
     //       and IB_GSI_PORT_COUNTERS_EXT are the 64-bit extended performance counters.
     // srcport: The MAD-port.
-    if (!performance_reset_via(resetBuf, &m_portId, m_portNum, 0xffffffff, DEFAULT_QUERY_TIMEOUT,
-                               IB_GSI_PORT_COUNTERS, m_madPort)) {
-        mad_rpc_close_port(m_madPort);
-        throw std::runtime_error("Failed to reset performance counters!");
+    if (!performance_reset_via(resetBuf, &perf_counter->portid, 1, 0xffffffff, DEFAULT_QUERY_TIMEOUT,
+                               IB_GSI_PORT_COUNTERS, perf_counter->mad_port)) {
+        mad_rpc_close_port(perf_counter->mad_port);
+        LOG_ERROR_AND_EXIT("PERF COUNTER", "Failed to reset performance counters!");
     }
 
-    if (!performance_reset_via(resetBuf, &m_portId, m_portNum, 0xffffffff, DEFAULT_QUERY_TIMEOUT,
-                               IB_GSI_PORT_COUNTERS_EXT, m_madPort)) {
-        mad_rpc_close_port(m_madPort);
-        throw std::runtime_error("Failed to reset extended performance counters!");
+    if (!performance_reset_via(resetBuf, &perf_counter->portid, 1, 0xffffffff, DEFAULT_QUERY_TIMEOUT,
+                               IB_GSI_PORT_COUNTERS_EXT, perf_counter->mad_port)) {
+        mad_rpc_close_port(perf_counter->mad_port);
+        LOG_ERROR_AND_EXIT("PERF COUNTER", "Failed to reset extended performance counters!");
     }
 }
 
-void IbPerfCounter::RefreshCounters() {
+void refresh_counters(ib_perf_counter *perf_counter) {
     uint64_t value;
     uint8_t pmaQueryBuf[QUERY_BUF_SIZE];
 
-    m_xmitDataBytes = 0;
-    m_rcvDataBytes = 0;
-    m_xmitPkts = 0;
-    m_rcvPkts = 0;
+    perf_counter->xmit_data_bytes = 0;
+    perf_counter->rcv_data_bytes = 0;
+    perf_counter->xmit_pkts = 0;
+    perf_counter->rcv_pkts = 0;
 
     // Query the port's performance counters.
     //
@@ -130,20 +96,33 @@ void IbPerfCounter::RefreshCounters() {
     // Get the extended 64-bit transmit- and receive-counters.
     memset(pmaQueryBuf, 0, sizeof(pmaQueryBuf));
 
-    if (!pma_query_via(pmaQueryBuf, &m_portId, m_portNum, 0, IB_GSI_PORT_COUNTERS_EXT, m_madPort)) {
-        mad_rpc_close_port(m_madPort);
-        throw std::runtime_error("Failed to query extended performance counters!");
+    if (!pma_query_via(pmaQueryBuf, &perf_counter->portid, 1, 0, IB_GSI_PORT_COUNTERS_EXT, perf_counter->mad_port)) {
+        mad_rpc_close_port(perf_counter->mad_port);
+        LOG_ERROR_AND_EXIT("PERF COUNTER", "Failed to query extended performance counters!");
     }
 
     mad_decode_field(pmaQueryBuf, IB_PC_EXT_XMT_BYTES_F, &value);
-    m_xmitDataBytes += value * m_linkWidth;
+    perf_counter->xmit_data_bytes += value * perf_counter->device->link_width;
 
     mad_decode_field(pmaQueryBuf, IB_PC_EXT_RCV_BYTES_F, &value);
-    m_rcvDataBytes += value * m_linkWidth;
+    perf_counter->rcv_data_bytes += value * perf_counter->device->link_width;
 
     mad_decode_field(pmaQueryBuf, IB_PC_EXT_XMT_PKTS_F, &value);
-    m_xmitPkts += value;
+    perf_counter->xmit_pkts += value;
 
     mad_decode_field(pmaQueryBuf, IB_PC_EXT_RCV_PKTS_F, &value);
-    m_rcvPkts += value;
+    perf_counter->rcv_pkts += value;
+}
+
+void close_perf_counter(ib_perf_counter *perf_counter) {
+    mad_rpc_close_port(perf_counter->mad_port);
+
+    perf_counter->device = NULL;
+    perf_counter->mad_port = NULL;
+    perf_counter->xmit_data_bytes = 0;
+    perf_counter->rcv_data_bytes = 0;
+    perf_counter->xmit_pkts = 0;
+    perf_counter->rcv_pkts = 0;
+
+    LOG_INFO("PERF COUNTER", "Destroyed performance counters!");
 }

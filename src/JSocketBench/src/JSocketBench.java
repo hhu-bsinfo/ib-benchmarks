@@ -50,9 +50,9 @@ public class JSocketBench {
     private IbPerfCounter perfCounter = null;
 
     /**
-     * True, if the raw statistics shall be shown.
+     * The performance counter mode.
      */
-    private boolean showPerfCounters = false;
+    private PERF_COUNTER_MODE perfCounterMode = PERF_COUNTER_MODE.OFF;
 
     /**
      * The connection.
@@ -79,6 +79,15 @@ public class JSocketBench {
         UNIDIRECTIONAL,
         BIDIRECTIONAL,
         PINGPONG
+    }
+
+    /**
+     * Possible perf counter modes (off, compat or mad).
+     */
+    private enum PERF_COUNTER_MODE {
+        OFF,
+        COMPAT,
+        MAD
     }
 
     /**
@@ -151,7 +160,21 @@ public class JSocketBench {
                     break;
                 case "-rs":
                 case "--raw-statistics":
-                    this.showPerfCounters = Boolean.parseBoolean(args[++i]);
+                    String perfCounterMode = args[++i];
+
+                    switch (perfCounterMode) {
+                        case "off":
+                            this.perfCounterMode = PERF_COUNTER_MODE.OFF;
+                            break;
+                        case "compat":
+                            this.perfCounterMode = PERF_COUNTER_MODE.COMPAT;
+                            break;
+                        case "mad":
+                            this.perfCounterMode = PERF_COUNTER_MODE.MAD;
+                            break;
+                        default:
+                            Log.ERROR_AND_EXIT("MAIN","Invalid perf counter mode '%s'!", perfCounterMode);
+                    }
                     break;
                 case "-v":
                 case "--verbosity":
@@ -161,7 +184,7 @@ public class JSocketBench {
         }
 
         if(this.mode == MODE.CLIENT) {
-            this.showPerfCounters = false;
+            this.perfCounterMode = PERF_COUNTER_MODE.OFF;
         }
 
         this.benchmarks = new Benchmarks();
@@ -187,8 +210,11 @@ public class JSocketBench {
             connection.connectToServer(bindAddress, remoteHostname, port);
         }
 
-        if(showPerfCounters) {
-            perfCounter = new IbPerfCounter();
+        if(perfCounterMode == PERF_COUNTER_MODE.COMPAT) {
+            perfCounter = new IbPerfCounter(true);
+            perfCounter.resetCounters();
+        } else if(perfCounterMode == PERF_COUNTER_MODE.MAD) {
+            perfCounter = new IbPerfCounter(false);
             perfCounter.resetCounters();
         }
 
@@ -243,7 +269,7 @@ public class JSocketBench {
             }
         }
 
-        if(showPerfCounters) {
+        if(perfCounterMode != PERF_COUNTER_MODE.OFF) {
             perfCounter.refreshCounters();
         }
 
@@ -280,8 +306,10 @@ public class JSocketBench {
                 "-p, --port\n" +
                 "    Set the TCP-port to be used for the connection (Default: 8888).\n" +
                 "-rs, --raw-statistics\n" +
-                "    Set to true, if the raw performance counters should be shown.\n" +
-                "    You will most probably need root-privileges to enable this feature.\n" +
+                "    Show infiniband perfomance counters\n" +
+                "        'mad'    = Use libibmad to get performance counters (requires root-privileges!)\n" +
+                "        'compat' = Use filesystem to get performance counters\n" +
+                "        'off'    = Don't show performance counters (Default).\n" +
                 "-v, --verbosity\n" +
                 "    Set the verbosity level: 0 = Fatal errors and raw results,\n" +
                 "                             1 = Fatal errors formatted results,\n" +
@@ -340,22 +368,30 @@ public class JSocketBench {
                 recvTime = 0;
             }
 
-            double sendAvgRawThroughputMib = showPerfCounters ? perfCounter.getXmitDataBytes() /
-                    (sendTime / ((double) 1000000000)) / ((double) 1024) / ((double) 1024) : 0;
+            double sendAvgRawThroughputMib = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
+                    perfCounter.getXmitDataBytes() / (sendTime / ((double) 1000000000)) /
+                            ((double) 1024) / ((double) 1024);
 
-            double sendAvgRawThroughputMb = showPerfCounters ? perfCounter.getXmitDataBytes() /
-                    (sendTime / ((double) 1000000000)) / ((double) 1000) / ((double) 1000) : 0;
+            double sendAvgRawThroughputMb = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
+                    perfCounter.getXmitDataBytes() / (sendTime / ((double) 1000000000)) /
+                            ((double) 1000) / ((double) 1000);
 
-            double recvAvgRawThroughputMib = showPerfCounters ? perfCounter.getRcvDataBytes() /
-                    (recvTime / ((double) 1000000000)) / ((double) 1024) / ((double) 1024) : 0;
+            double recvAvgRawThroughputMib = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
+                    perfCounter.getRcvDataBytes() /(recvTime / ((double) 1000000000)) /
+                            ((double) 1024) / ((double) 1024);
 
-            double recvAvgRawThroughputMb = showPerfCounters ? perfCounter.getRcvDataBytes() /
-                    (recvTime / ((double) 1000000000)) / ((double) 1000) / ((double) 1000) : 0;
+            double recvAvgRawThroughputMb = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
+                    perfCounter.getRcvDataBytes() / (recvTime / ((double) 1000000000)) /
+                            ((double) 1000) / ((double) 1000);
 
-            double sendOverhead = showPerfCounters ? perfCounter.getXmitDataBytes() - totalData : 0;
+            double sendOverhead = 0;
             double recvOverhead = 0;
 
-            if(showPerfCounters && totalData < perfCounter.getRcvDataBytes()) {
+            if(perfCounterMode != PERF_COUNTER_MODE.OFF && totalData < perfCounter.getXmitDataBytes()) {
+                sendOverhead = perfCounter.getXmitDataBytes() - totalData;
+            }
+
+            if(perfCounterMode != PERF_COUNTER_MODE.OFF && totalData < perfCounter.getRcvDataBytes()) {
                 recvOverhead = perfCounter.getRcvDataBytes() - totalData;
             }
 
@@ -382,7 +418,7 @@ public class JSocketBench {
                         sendAvgThroughputMib + recvAvgThroughputMib, sendAvgThroughputMb + recvAvgThroughputMb);
                 System.out.printf("  Average send latency: %.2f us\n", sendAvgLatency);
 
-                if(showPerfCounters) {
+                if(perfCounterMode != PERF_COUNTER_MODE.OFF) {
                     System.out.print("\nRaw statistics:\n");
                     System.out.printf("  Total packets sent: %d\n", perfCounter.getXmitPkts());
                     System.out.printf("  Total packets received %d\n", perfCounter.getRcvPkts());
@@ -423,7 +459,7 @@ public class JSocketBench {
                 System.out.printf("%f\n", sendAvgThroughputMb + recvAvgThroughputMb);
                 System.out.printf("%f\n", sendAvgLatency);
 
-                if(showPerfCounters) {
+                if(perfCounterMode != PERF_COUNTER_MODE.OFF) {
                     System.out.printf("%d\n", perfCounter.getXmitPkts());
                     System.out.printf("%d\n", perfCounter.getXmitPkts());
                     System.out.printf("%f\n", perfCounter.getXmitDataBytes() / ((double) 1024) / ((double) 1024));
@@ -481,7 +517,7 @@ public class JSocketBench {
             Log.WARN("MAIN", "Unable to determine user id! Error: %s", e.getMessage());
         }
 
-        if(bench.showPerfCounters) {
+        if(bench.perfCounterMode != PERF_COUNTER_MODE.OFF) {
             try {
                 loadNativeLibraryFromJar("/libIbPerfCounter.so");
                 Log.INFO("MAIN", "Successfully loaded native library 'libIbPerfCounter.so'");
