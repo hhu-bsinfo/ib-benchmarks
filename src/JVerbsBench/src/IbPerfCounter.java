@@ -6,14 +6,12 @@ class IbPerfCounter {
     /**
      * Constructor.
      */
-    IbPerfCounter() {
+    IbPerfCounter(boolean compat) {
         Log.INFO("PERF COUNTER", "Initializing performance counters...");
 
-        boolean result = init();
+        System.loadLibrary("ibverbs");
 
-        if(!result) {
-            Log.ERROR_AND_EXIT("PERF COUNTER", "Failed to initialize JNI-binding!");
-        }
+        init(compat, Log.VERBOSITY);
 
         Log.INFO("PERF COUNTER", "Finished initializing performance counters!");
     }
@@ -21,7 +19,7 @@ class IbPerfCounter {
     /**
      * Initialize IbPerfCounterNative.
      */
-    public native boolean init();
+    public native boolean init(boolean compat, int verbosity);
 
     /**
      * Reset all MAD-counters.
