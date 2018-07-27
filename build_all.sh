@@ -11,7 +11,7 @@ print_usage()
     printf "Usage: ./build_all.sh [OPTION...]
     Available options:
     -m, --mode
-        Set the operating mode to either 'build' or 'clean' (default: build)
+        Set the operating mode to either 'build', 'doc' or 'clean' (default: build)
     -j, --java
         Set the path to your default JVM
     -h, --help
@@ -43,6 +43,29 @@ parse_opts()
         esac
         shift 2
     done
+}
+
+generate_doc()
+{
+    local prog=$1
+
+    printf "\n\e[92mGenerating documentation for ${prog}...\e[0m\n"
+
+    mkdir -p doc/${prog}/
+    
+    printf "\n\n\n\n\nExecuting 'doxygen src/${prog}/doxygen.conf':\n\n" >> build.log 2>&1
+
+    doxygen src/${prog}/doxygen.conf >> build.log
+
+    if [ $? -eq 0 ]; then
+        printf "\e[92mFinished successfully!\e[0m\n"
+    else
+        printf "\e[91mFinished unsuccessfully!\e[0m\n"
+        printf "\n\e[94mSee 'build.log' for detailed output messages!\e[0m\n"
+        exit 1
+    fi
+
+    ln -s ${prog}/html/index.html doc/${prog}.html
 }
 
 build()
@@ -89,6 +112,15 @@ clean()
     cd ../..
 }
 
+generate_all_docs()
+{
+    rm -rf doc/
+
+    generate_doc "CVerbsBench"
+    generate_doc "JSocketBench"
+    generate_doc "JVerbsBench"
+}
+
 build_all()
 {
     build "CVerbsBench" "./build.sh"
@@ -119,6 +151,9 @@ printf "Log from ${BUILD_DATE}" > build.log
 case $MODE in
     build)
         build_all
+        ;;
+    doc)
+        generate_all_docs
         ;;
     clean)
         clean_all
