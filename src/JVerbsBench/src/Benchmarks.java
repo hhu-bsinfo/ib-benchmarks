@@ -53,12 +53,12 @@ class Benchmarks {
                 // Poll only a single time
                 // It is not recommended to poll the completion queue empty, as this mostly costs too much time,
                 // which would better be spent posting new work requests
-                pendingComps -= connection.pollCompletionQueue();
+                pendingComps -= connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
             }
 
             // At the end, poll the completion queue until it is empty
             while(pendingComps > 0) {
-                pendingComps -= connection.pollCompletionQueue();
+                pendingComps -= connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
             }
 
             endTime = System.nanoTime();
@@ -109,12 +109,12 @@ class Benchmarks {
                 // Poll only a single time
                 // It is not recommended to poll the completion queue empty, as this mostly costs too much time,
                 // which would better be spent posting new work requests
-                pendingComps -= connection.pollCompletionQueue();
+                pendingComps -= connection.pollCompletionQueue(JVerbsWrapper.CqType.RECV_CQ);
             }
 
             // At the end, poll the completion queue until it is empty
             while(pendingComps > 0) {
-                pendingComps -= connection.pollCompletionQueue();
+                pendingComps -= connection.pollCompletionQueue(JVerbsWrapper.CqType.RECV_CQ);
             }
 
             endTime = System.nanoTime();
@@ -166,12 +166,12 @@ class Benchmarks {
                 // Poll only a single time
                 // It is not recommended to poll the completion queue empty, as this mostly costs too much time,
                 // which would better be spent posting new work requests
-                pendingComps -= connection.pollCompletionQueue();
+                pendingComps -= connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
             }
 
             // At the end, poll the completion queue until it is empty
             while(pendingComps > 0) {
-                pendingComps -= connection.pollCompletionQueue();
+                pendingComps -= connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
             }
 
             endTime = System.nanoTime();
@@ -259,14 +259,14 @@ class Benchmarks {
                 connection.sendMessages(1);
 
                 do {
-                    polled = connection.pollCompletionQueue();
+                    polled = connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
                 } while(polled == 0);
 
                 // Receive a single message and wait until a work completion is generated
                 connection.recvMessages(1);
 
                 do {
-                    polled = connection.pollCompletionQueue();
+                    polled = connection.pollCompletionQueue(JVerbsWrapper.CqType.RECV_CQ);
                 } while(polled == 0);
 
                 msgCount--;
@@ -309,14 +309,14 @@ class Benchmarks {
                 connection.recvMessages(1);
 
                 do {
-                    polled = connection.pollCompletionQueue();
+                    polled = connection.pollCompletionQueue(JVerbsWrapper.CqType.RECV_CQ);
                 } while(polled == 0);
 
                 // Send a single message and wait until a work completion is generated
                 connection.sendMessages(1);
 
                 do {
-                    polled = connection.pollCompletionQueue();
+                    polled = connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
                 } while(polled == 0);
 
                 msgCount--;

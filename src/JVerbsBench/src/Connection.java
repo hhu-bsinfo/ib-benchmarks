@@ -527,8 +527,8 @@ class Connection {
      *
      * @return The amount of polled work completions
      */
-    int pollCompletionQueue() throws Exception {
-        PollCQMethod pollMethod = wrapper.getPollCqMethod();
+    int pollCompletionQueue(JVerbsWrapper.CqType type) throws Exception {
+        PollCQMethod pollMethod = wrapper.getPollCqMethod(type);
 
         pollMethod.execute();
 

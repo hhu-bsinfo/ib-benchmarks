@@ -32,14 +32,24 @@ class JVerbsWrapper {
     private ProtectionDomain protDom;
 
     /**
-     * Completion channel (Unused, but required for the creation of a completion queue).
+     * Send Completion channel (Unused, but required for the creation of a completion queue).
      */
-    private CompletionChannel compChannel;
+    private CompletionChannel sendCompChannel;
 
     /**
-     * The completion queue.
+     * Receive Completion channel (Unused, but required for the creation of a completion queue).
      */
-    private CompletionQueue compQueue;
+    private CompletionChannel recvCompChannel;
+
+    /**
+     * The send completion queue.
+     */
+    private CompletionQueue sendCompQueue;
+
+    /**
+     * The receive completion queue.
+     */
+    private CompletionQueue recvCompQueue;
 
     /**
      * The queue pair.
@@ -52,14 +62,19 @@ class JVerbsWrapper {
     private WorkCompletion[] workComps;
 
     /**
-     * Holds a PollCQMethod for every thread, that calls getPollCqMethod().
-     *
-     * PollCQMethod is a stateful verbs call. Stateful verbs calls can be reused, once they are initialized.
-     *
-     * Apparently, stateful verbs calls are NOT thread-safe. In my tests, I found out, that the benchmark crashes when
-     * two threads use the same stateful verbs call.
+     * Stateful Verbs Call for polling the send completion queue.
      */
-    private HashMap<Long, PollCQMethod> pollCqMethodMap;
+    private PollCQMethod sendCqMethod;
+
+    /**
+     * Stateful Verbs Call for polling the receive completion queue.
+     */
+    private PollCQMethod recvCqMethod;
+
+    enum CqType {
+        SEND_CQ,
+        RECV_CQ
+    }
 
     /**
      * Constructor.
@@ -77,9 +92,14 @@ class JVerbsWrapper {
         // Create protection domain
         protDom = context.allocProtectionDomain();
 
-        // Create completion queue
-        compChannel = context.createCompletionChannel();
-        compQueue = context.createCompletionQueue(compChannel, queueSize, 0);
+        // Create send completion queue
+        sendCompChannel = context.createCompletionChannel();
+        sendCompQueue = context.createCompletionQueue(sendCompChannel, queueSize, 0);
+
+        // Create receive completion queue
+        recvCompChannel = context.createCompletionChannel();
+        recvCompQueue = context.createCompletionQueue(recvCompChannel, queueSize, 0);
+
 
         // Create queue pair
         QueuePairInitAttribute attr = new QueuePairInitAttribute();
@@ -88,8 +108,8 @@ class JVerbsWrapper {
         attr.getCap().setMaxSendSge(1);
         attr.getCap().setMaxSendWorkRequest(queueSize);
         attr.setQueuePairType(QueuePair.Type.IBV_QPT_RC);
-        attr.setSendCompletionQueue(compQueue);
-        attr.setReceiveCompletionQueue(compQueue);
+        attr.setSendCompletionQueue(sendCompQueue);
+        attr.setReceiveCompletionQueue(recvCompQueue);
 
         queuePair = id.createQueuePair(protDom, attr);
 
@@ -99,8 +119,6 @@ class JVerbsWrapper {
         for(int i = 0; i < this.workComps.length; i++) {
             this.workComps[i] = new WorkCompletion();
         }
-
-        pollCqMethodMap = new HashMap<>();
     }
 
     /**
@@ -164,19 +182,29 @@ class JVerbsWrapper {
     /**
      * Get a stateful verbs call, that can be used to poll the completion queue.
      *
+     * @param type Whether to poll the send or the receive completion queue
+     *
      * @return The stateful verbs call
      */
-    PollCQMethod getPollCqMethod() throws Exception {
-        long threadId = Thread.currentThread().getId();
+    PollCQMethod getPollCqMethod(CqType type) throws Exception {
+        PollCQMethod pollCqMethod;
 
-        if(!pollCqMethodMap.containsKey(threadId)) {
-            pollCqMethodMap.put(threadId, compQueue.pollCQ(workComps, queueSize));
+        if(type == CqType.SEND_CQ) {
+            if(sendCqMethod == null) {
+                sendCqMethod = sendCompQueue.pollCQ(workComps, queueSize);
+            }
+
+            pollCqMethod = sendCqMethod;
+        } else {
+            if(recvCqMethod == null) {
+                recvCqMethod = recvCompQueue.pollCQ(workComps, queueSize);
+            }
+
+            pollCqMethod = recvCqMethod;
         }
 
-        PollCQMethod pollCqMethod = pollCqMethodMap.get(threadId);
-
         if (!pollCqMethod.isValid()) {
-            Log.ERROR_AND_EXIT("WRAPPER", "SendPollCqMethod invalid!");
+            Log.ERROR_AND_EXIT("WRAPPER", "PollCqMethod invalid!");
         }
 
         return pollCqMethod;
@@ -197,14 +225,13 @@ class JVerbsWrapper {
      * Destroy all JVerbs resources.
      */
     void destroy() throws Exception {
-        for(PollCQMethod pollCqMethod : pollCqMethodMap.values()) {
-            pollCqMethod.free();
-        }
+        sendCqMethod.free();
+        recvCqMethod.free();
 
-        pollCqMethodMap.clear();
-
-        context.destroyCompletionQueue(compQueue);
-        context.destroyCompletionChannel(compChannel);
+        context.destroyCompletionQueue(sendCompQueue);
+        context.destroyCompletionQueue(recvCompQueue);
+        context.destroyCompletionChannel(sendCompChannel);
+        context.destroyCompletionChannel(recvCompChannel);
         connectionId.destroyQueuePair();
         context.deallocProtectionDomain(protDom);
     }
