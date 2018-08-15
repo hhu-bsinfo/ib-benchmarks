@@ -119,7 +119,8 @@ class Connection {
         this.connectionParams = new ConnectionParameter();
         this.connectionParams.setInitiatorDepth(1);
         this.connectionParams.setResponderResources(1);
-        this.connectionParams.setRetryCount(7);
+        this.connectionParams.setRetryCount(3);
+        this.connectionParams.setRnrRetryCount(3);
 
         this.queueSize = queueSize;
 

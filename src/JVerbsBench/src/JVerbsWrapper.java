@@ -100,7 +100,6 @@ class JVerbsWrapper {
         recvCompChannel = context.createCompletionChannel();
         recvCompQueue = context.createCompletionQueue(recvCompChannel, queueSize, 0);
 
-
         // Create queue pair
         QueuePairInitAttribute attr = new QueuePairInitAttribute();
         attr.getCap().setMaxReceiveSge(1);
