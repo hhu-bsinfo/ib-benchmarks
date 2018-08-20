@@ -62,12 +62,32 @@ class JVerbsWrapper {
     private WorkCompletion[] workComps;
 
     /**
-     * Stateful Verbs Call for polling the send completion queue.
+     * Stateful Verbs Method for posting Send Work Requests.
+     */
+    private PostSendMethod postSendMethod;
+
+    /**
+     * Stateful Verbs Method for posting Receive Work Requests.
+     */
+    private PostReceiveMethod postReceiveMethod;
+
+    /**
+     * Amount of last posted send work requests.
+     */
+    private int lastSend;
+
+    /**
+     * Amount of last posted receive work requests.
+     */
+    private int lastReceive;
+
+    /**
+     * Stateful Verbs Method for polling the send completion queue.
      */
     private PollCQMethod sendCqMethod;
 
     /**
-     * Stateful Verbs Call for polling the receive completion queue.
+     * Stateful Verbs Method for polling the receive completion queue.
      */
     private PollCQMethod recvCqMethod;
 
@@ -118,6 +138,9 @@ class JVerbsWrapper {
         for(int i = 0; i < this.workComps.length; i++) {
             this.workComps[i] = new WorkCompletion();
         }
+
+        lastSend = -1;
+        lastReceive = -1;
     }
 
     /**
@@ -152,7 +175,13 @@ class JVerbsWrapper {
      * @return The stateful verbs call
      */
     PostSendMethod getPostSendMethod(LinkedList<SendWorkRequest> sendWrs) throws Exception {
-        PostSendMethod postSendMethod = queuePair.preparePostSend(sendWrs);
+        if(lastSend != sendWrs.size()) {
+            if(postSendMethod != null) {
+                postSendMethod.free();
+            }
+
+            postSendMethod = queuePair.preparePostSend(sendWrs);
+        }
 
         if(!postSendMethod.isValid()) {
             Log.ERROR_AND_EXIT("WRAPPER", "PostSendMethod invalid!");
@@ -169,10 +198,16 @@ class JVerbsWrapper {
      * @return The stateful verbs call
      */
     PostReceiveMethod getPostReceiveMethod(LinkedList<ReceiveWorkRequest> recvWrs) throws Exception {
-        PostReceiveMethod postReceiveMethod = queuePair.preparePostReceive(recvWrs);
+        if(lastReceive != recvWrs.size()) {
+            if(postReceiveMethod != null) {
+                postReceiveMethod.free();
+            }
+
+            postReceiveMethod = queuePair.preparePostReceive(recvWrs);
+        }
 
         if(!postReceiveMethod.isValid()) {
-            Log.ERROR_AND_EXIT("WRAPPER", "PostSendMethod invalid!");
+            Log.ERROR_AND_EXIT("WRAPPER", "PostReceiveMethod invalid!");
         }
 
         return postReceiveMethod;
@@ -224,6 +259,8 @@ class JVerbsWrapper {
      * Destroy all JVerbs resources.
      */
     void destroy() throws Exception {
+        postSendMethod.free();
+        postSendMethod.free();
         sendCqMethod.free();
         recvCqMethod.free();
 

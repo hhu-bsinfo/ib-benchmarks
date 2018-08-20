@@ -457,8 +457,6 @@ class Connection {
         if(!sendMethod.isSuccess()) {
             Log.ERROR_AND_EXIT("CONNECTION", "PostSendMethod failed!");
         }
-
-        sendMethod.free();
     }
 
     /**
@@ -487,8 +485,6 @@ class Connection {
         if(!receiveMethod.isSuccess()) {
             Log.ERROR_AND_EXIT("CONNECTION", "PostReceiveMethod failed!");
         }
-
-        receiveMethod.free();
     }
 
     /**
