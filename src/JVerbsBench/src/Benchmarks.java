@@ -35,20 +35,38 @@ class Benchmarks {
         Log.INFO("SEND THREAD", "Starting send thread! Sending %d messages.", msgCount);
 
         try {
+            connection.getSocket().getOutputStream().write("start".getBytes());
+
             startTime = System.nanoTime();
 
             while(msgCount > 0) {
-                // Always post as much work requests as there are free places in the queue
+                // Get the amount of free places in the queue
                 int batchSize = queueSize - pendingComps;
+
+                // Post in batches of 10, so that Stateful Verbs Methods can be reused
+                if(batchSize < 10) {
+                    pendingComps -= connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
+                    continue;
+                }
 
                 if(batchSize > msgCount) {
                     batchSize = (int) msgCount;
+
+                    connection.sendMessages(batchSize);
+
+                    pendingComps += batchSize;
+                    msgCount -= batchSize;
+                } else {
+                    int i = batchSize;
+
+                    while(i >= 10) {
+                        connection.sendMessages(10);
+                        i -= 10;
+                    }
+
+                    pendingComps += batchSize - i;
+                    msgCount -= batchSize - i;
                 }
-
-                connection.sendMessages(batchSize);
-
-                pendingComps += batchSize;
-                msgCount -= batchSize;
 
                 // Poll only a single time
                 // It is not recommended to poll the completion queue empty, as this mostly costs too much time,
@@ -86,25 +104,54 @@ class Benchmarks {
         long startTime = 0, endTime = 0;
 
         int queueSize = connection.getQueueSize();
-        int pendingComps = 0;
+        int pendingComps;
 
         Log.INFO("RECV THREAD", "Starting receive thread! Receiving %d messages.", msgCount);
 
         try {
+            // Fill Receive Queue to avoid timeouts on sender side
+            connection.recvMessages(queueSize);
+            pendingComps = queueSize;
+            msgCount -= queueSize;
+
+            // Wait for start signal from server
+            byte[] buf = new byte[5];
+            DataInputStream stream = new DataInputStream(connection.getSocket().getInputStream());
+
+            stream.readFully(buf);
+
             startTime = System.nanoTime();
 
+            pendingComps -= connection.pollCompletionQueue(JVerbsWrapper.CqType.RECV_CQ);
+
             while(msgCount > 0) {
-                // Always post as much work requests as there are free places in the queue
+                // Get the amount of free places in the queue
                 int batchSize = queueSize - pendingComps;
+
+                // Post in batches of 10, so that Stateful Verbs Methods can be reused
+                if(batchSize < 10) {
+                    pendingComps -= connection.pollCompletionQueue(JVerbsWrapper.CqType.RECV_CQ);
+                    continue;
+                }
 
                 if(batchSize > msgCount) {
                     batchSize = (int) msgCount;
+
+                    connection.recvMessages(batchSize);
+
+                    pendingComps += batchSize;
+                    msgCount -= batchSize;
+                } else {
+                    int i = batchSize;
+
+                    while(i >= 10) {
+                        connection.recvMessages(10);
+                        i -= 10;
+                    }
+
+                    pendingComps += batchSize - i;
+                    msgCount -= batchSize - i;
                 }
-
-                connection.recvMessages(batchSize);
-
-                pendingComps += batchSize;
-                msgCount -= batchSize;
 
                 // Poll only a single time
                 // It is not recommended to poll the completion queue empty, as this mostly costs too much time,
@@ -123,7 +170,7 @@ class Benchmarks {
                     " Error: '%s'", e.getMessage());
         }
 
-        Log.INFO("RECV THREAD", "Finished sending!");
+        Log.INFO("RECV THREAD", "Finished receiving!");
 
         recvTime = endTime - startTime;
 
@@ -145,23 +192,39 @@ class Benchmarks {
         int queueSize = connection.getQueueSize();
         int pendingComps = 0;
 
-        Log.INFO("SEND THREAD", "Starting send thread! Sending %d messages.", count);
+        Log.INFO("SEND THREAD", "Starting send thread! Writing %d times.", count);
 
         try {
             startTime = System.nanoTime();
 
             while(count > 0) {
-                // Always post as much work requests as there are free places in the queue
+                // Get the amount of free places in the queue
                 int batchSize = queueSize - pendingComps;
+
+                // Post in batches of 10, so that Stateful Verbs Methods can be reused
+                if(batchSize < 10) {
+                    pendingComps -= connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
+                    continue;
+                }
 
                 if(batchSize > count) {
                     batchSize = (int) count;
+
+                    connection.rdmaWrite(batchSize);
+
+                    pendingComps += batchSize;
+                    count -= batchSize;
+                } else {
+                    int i = batchSize;
+
+                    while(i >= 10) {
+                        connection.rdmaWrite(10);
+                        i -= 10;
+                    }
+
+                    pendingComps += batchSize - i;
+                    count -= batchSize - i;
                 }
-
-                connection.rdmaWrite(batchSize);
-
-                pendingComps += batchSize;
-                count -= batchSize;
 
                 // Poll only a single time
                 // It is not recommended to poll the completion queue empty, as this mostly costs too much time,
@@ -180,7 +243,7 @@ class Benchmarks {
                     " Error: '%s'", e.getMessage());
         }
 
-        Log.INFO("SEND THREAD", "Finished sending!");
+        Log.INFO("SEND THREAD", "Finished writing!");
 
         sendTime = endTime - startTime;
 
