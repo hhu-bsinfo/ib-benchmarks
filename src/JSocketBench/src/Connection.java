@@ -6,6 +6,9 @@ import java.util.Objects;
  * TCP-connection to a remote host.
  *
  * This class allows connecting to either a server or a client and send messages to the remote host.
+ *
+ * @author Fabian Ruhland, HHU
+ * @date 2018
  */
 class Connection {
 

@@ -1,7 +1,7 @@
 /**
  * @file log.h
  * @author Fabian Ruhland, HHU
- * @date May 2018
+ * @date 2018
  *
  * @brief Contains some macros, which can be used to create color-coded logging messages.
  *

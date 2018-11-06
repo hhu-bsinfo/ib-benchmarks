@@ -1,7 +1,7 @@
 /**
  * @file log.h
  * @author Fabian Ruhland, HHU
- * @date May 2018
+ * @date 2018
  *
  * @brief Contains some macros, which can be used to create color-coded logging messages.
  *
@@ -16,6 +16,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+/**
+ * The verbosity level to be used for log-output.
+ * 
+ * Possible values are:
+ *    0: Fatal errors and raw results
+ *    1: Fatal errors formatted results"
+ *    2: All errors and formatted results"
+ *    3: All errors/warnings and formatted results"
+ *    4: All log messages and formatted results (Default).
+ */
 extern uint8_t verbosity;
 
 /**

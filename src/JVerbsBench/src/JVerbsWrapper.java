@@ -6,6 +6,9 @@ import java.util.LinkedList;
 
 /**
  * Wraps some of the JVerbs-functions and -classes.
+ *
+ * @author Fabian Ruhland, HHU
+ * @date 2018
  */
 class JVerbsWrapper {
 
@@ -91,9 +94,13 @@ class JVerbsWrapper {
      */
     private PollCQMethod recvCqMethod;
 
+    /**
+     * Used by Connection.pollCompletionQueue(JVerbsWrapper.CqType type) to determine whether
+     * the send or the completion queue shall be polled.
+     */
     enum CqType {
-        SEND_CQ,
-        RECV_CQ
+        SEND_CQ,    /**< Send completion queue */
+        RECV_CQ     /**< Receive completion queue */
     }
 
     /**

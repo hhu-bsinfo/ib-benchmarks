@@ -13,10 +13,6 @@
 #ifndef IB_PERF_COUNTER_COMPAT_H
 #define IB_PERF_COUNTER_COMPAT_H
 
-#define DEFAULT_QUERY_TIMEOUT 0
-#define QUERY_BUF_SIZE 1536
-#define RESET_BUF_SIZE 1024
-
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -29,7 +25,7 @@ typedef struct ib_perf_counter_compat {
     ib_device *device; /**< The infiniband device */
 
     FILE *files[4]; /**< The file descriptors for each performance counter */
-    uint64_t base_values[4]; /** The initial counter values */
+    uint64_t base_values[4]; /**< The initial counter values */
 
     uint64_t xmit_data_bytes; /**< The amount of sent packets since the last counter reset */
     uint64_t rcv_data_bytes; /**< The amount of sent bytes since the last counter reset */

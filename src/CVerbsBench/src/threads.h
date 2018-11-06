@@ -1,7 +1,7 @@
 /**
  * @file threads.h
  * @author Fabian Ruhland, HHU
- * @date May 2018
+ * @date 2018
  *
  * @brief Contains thread-functions for sending and receiving data via infiniband.
  */

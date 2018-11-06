@@ -1,9 +1,21 @@
 import java.io.IOException;
 
+/**
+ * Contains the benchmark functions.
+ *
+ * @author Fabian Ruhland, HHU
+ * @date 2018
+ */
 public class Benchmarks {
 
+    /**
+     * Stores the time in nanosecons, that has been measured by a send benchmark.
+     */
     private long sendTime = 0;
 
+    /**
+     * Stores the time in nanosecons, that has been measured by a receive benchmark.
+     */
     private long recvTime = 0;
 
     /**
@@ -124,10 +136,16 @@ public class Benchmarks {
         Log.INFO("CLIENT THREAD", "Terminating thread...", messageCount);
     }
 
+    /**
+     * Get the time, that has been measured by a send benchmark.
+     */
     long getSendTime() {
         return sendTime;
     }
 
+    /**
+     * Get the time, that has been measured by a receive benchmark.
+     */
     long getRecvTime() {
         return recvTime;
     }

@@ -1,7 +1,7 @@
 /**
  * @file threads.c
  * @author Fabian Ruhland, HHU
- * @date May 2018
+ * @date 2018
  *
  * @brief Contains thread-functions for sending and receiving data via infiniband.
  */
@@ -13,7 +13,20 @@
 #include <zconf.h>
 #include "threads.h"
 
+/**
+ * Return value of a send benchmark.
+ *
+ * The benchmark stores the measured time in this variable, after it has finished.
+ * A pointer to this variable is then returned to the main-thread.
+ */
 uint64_t send_return_val = 0;
+
+/**
+ * Return value of a receive benchmark.
+ *
+ * The benchmark stores the measured time in this variable, after it has finished.
+ * A pointer to this variable is then returned to the main-thread.
+ */
 uint64_t recv_return_val = 0;
 
 void *msg_send_thread(thread_params *params) {

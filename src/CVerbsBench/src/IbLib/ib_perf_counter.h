@@ -11,8 +11,19 @@
 #ifndef IB_PERF_COUNTER_H
 #define IB_PERF_COUNTER_H
 
+/**
+ * Default timeout-value to be used for SMP-/PMA-querys.
+ */
 #define DEFAULT_QUERY_TIMEOUT 0
+
+/**
+ * Buffer size to be used for SMP-/PMA-querys.
+ */
 #define QUERY_BUF_SIZE 1536
+
+/**
+ * Buffer size to be used for reset-querys.
+ */
 #define RESET_BUF_SIZE 1024
 
 #include <stdint.h>

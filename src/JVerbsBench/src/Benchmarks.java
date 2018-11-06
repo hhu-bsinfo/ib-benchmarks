@@ -4,6 +4,9 @@ import java.io.EOFException;
 
 /**
  * Contains the benchmarks.
+ *
+ * @author Fabian Ruhland, HHU
+ * @date 2018
  */
 class Benchmarks {
 

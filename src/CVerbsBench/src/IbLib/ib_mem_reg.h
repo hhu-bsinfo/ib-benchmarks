@@ -1,7 +1,7 @@
 /**
  * @file ib_mem_reg.h
  * @author Fabian Ruhland, HHU
- * @date May 2018
+ * @date 2018
  *
  * @brief Contains structs and functions to work with memory regions.
  */
@@ -32,8 +32,7 @@ typedef struct ib_mem_reg {
  * After a memory region has been initialized, it can be registered by calling register_memory_region().
  *
  * @param mem_reg The memory region to be initialized
- * @param addr The buffer to be used as a memory region
- * @param size The buffer's size
+ * @param size The size of the buffer to be used by the memory region
  */
 void init_mem_reg(ib_mem_reg *mem_reg, uint64_t size);
 

@@ -6,6 +6,9 @@ import java.nio.file.Files;
  * The main class.
  *
  * Contains all configuration variables and starts the benchmark.
+ *
+ * @author Fabian Ruhland, HHU
+ * @date 2018
  */
 public class JSocketBench {
 
@@ -68,26 +71,26 @@ public class JSocketBench {
      * Possible connections modes (server or client).
      */
     private enum MODE {
-        SERVER,
-        CLIENT
+        SERVER, /**< Run as server **/
+        CLIENT  /**< Run as client */
     }
 
     /**
      * Possible benchmarks (unidirectional, bidirectional or pingpong).
      */
     private enum BENCHMARK {
-        UNIDIRECTIONAL,
-        BIDIRECTIONAL,
-        PINGPONG
+        UNIDIRECTIONAL, /**< Run a unidirectional benchmark with one sender and one receiver */
+        BIDIRECTIONAL,  /**< Run a bidirectional benchmark, where both hosts send and receive simaltaneously */
+        PINGPONG        /**< Run a pingpong benchmark */
     }
 
     /**
      * Possible perf counter modes (off, compat or mad).
      */
     private enum PERF_COUNTER_MODE {
-        OFF,
-        COMPAT,
-        MAD
+        OFF,    /**< Do not measure raw statistics */
+        COMPAT, /**< Use the filesystem to measure raw statistics */
+        MAD     /**< Use the ibmad-library to measure raw statistics */
     }
 
     /**

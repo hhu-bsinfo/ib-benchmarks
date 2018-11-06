@@ -1,5 +1,8 @@
 /**
- * Uses JNI-calls to read the performance counters of an infiniband device via the mad library.
+ * Uses JNI-calls to read the performance counters of an infiniband device either via the mad library, or by using the filesystem.
+ *
+ * @author Fabian Ruhland, HHU
+ * @date 2018
  */
 class IbPerfCounter {
 

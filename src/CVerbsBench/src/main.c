@@ -1,7 +1,7 @@
 /**
  * @file main.c
  * @author Fabian Ruhland, HHU
- * @date May 2018
+ * @date 2018
  *
  * @brief Contains the benchmark's main-function.
  */
@@ -26,23 +26,79 @@ void parse_args(int argc, char **argv);
 void print_usage();
 void print_results();
 
+/**
+ * Either 'server' or 'client'.
+ */
 char *mode = NULL;
+
+/**
+ * Hostname of the remote server (only relevant in client mode),
+ */
 char *remote_hostname = NULL;
+
+/**
+ * The local IP-address to bind the TCP-socket to.
+ */
 char *bind_address = NULL;
+
+/**
+ * The benchmark to be executed (unidirectional/bidirectional).
+ */
 char *benchmark = "unidirectional";
+
+/**
+ * The transport to be used (msg/rdma).
+ */
 char *transport = "msg";
+
+/**
+ * Performance counter mode (off/mad/compat).
+ */
 char *perf_counter_mode = "off";
+
+/**
+ * Buffer size to be used for the benchmark.
+ */
 uint64_t buf_size = 1024;
+
+/**
+ * Amount of buffers to sent/received.
+ */
 uint64_t count = 1000000;
+
+/**
+ * Queue size to be used for the InfiniBand queue pairs.
+ */
 uint32_t queue_size = 100;
+
+/**
+ * TCP-port, that is used to exchange InifiniBand connection parameters.
+ */
 uint16_t port = 8888;
 
+/**
+ * The verbosity level to be used for log messages.
+ */
 uint8_t verbosity = 4;
 
+/**
+ * The time, that is measured by the send benchmark, in nanoseconds.
+ */
 uint64_t *send_time_in_nanos = NULL;
+
+/**
+ * The time, that is measured by the receive benchmark, in nanoseconds.
+ */
 uint64_t *recv_time_in_nanos = NULL;
 
+/**
+ * Querys performance counters by using the ibmad-library.
+ */
 ib_perf_counter perf_counter;
+
+/**
+ * Querys performance counters by using the filesystem.
+ */
 ib_perf_counter_compat perf_counter_compat;
 
 /**

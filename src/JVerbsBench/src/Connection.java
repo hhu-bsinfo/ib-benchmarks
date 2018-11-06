@@ -17,6 +17,9 @@ import java.util.StringTokenizer;
  * Connection to a remote host.
  *
  * This class allows connecting to either a server or a client and send messages to the remote host.
+ *
+ * @author Fabian Ruhland, HHU
+ * @date 2018
  */
 class Connection {
 
@@ -110,6 +113,12 @@ class Connection {
      */
     private LinkedList<ReceiveWorkRequest> recvWrList;
 
+    /**
+     * Create a connection.
+     *
+     * @param bufSize The size to be used for sendBuf and recvBuf
+     * @param queueSize The queue size to be used for the InfiniBand queue pairs
+     */
     Connection(int bufSize, int queueSize) {
         Log.INFO("CONNECTION", "Creating connection...");
 
@@ -368,6 +377,9 @@ class Connection {
         Log.INFO("CONNECTION", "Successfully established a connection to a client!");
     }
 
+    /**
+     * Exchange the address and remote key of the receive memory regions with the remote host, so that rdma can be used.
+     */
     private void exchangeRdmaInfo() {
         try {
             DataInputStream inputStream = new DataInputStream(socket.getInputStream());
@@ -547,10 +559,16 @@ class Connection {
         return polled;
     }
 
+    /**
+     * Get the queue size of the InfiniBand queue pairs.
+     */
     int getQueueSize() {
         return queueSize;
     }
 
+    /**
+     * Get the socket, that is used to exchange the rdma parameters.
+     */
     Socket getSocket() {
         return socket;
     }

@@ -1,7 +1,7 @@
 /**
  * @file connection.h
  * @author Fabian Ruhland, HHU
- * @date May 2018
+ * @date 2018
  *
  * @brief Contains structs and functions to work with connections.
  */

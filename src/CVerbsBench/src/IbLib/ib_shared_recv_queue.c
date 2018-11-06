@@ -1,7 +1,7 @@
 /**
  * @file ib_shared_recv_queue.c
  * @author Fabian Ruhland, HHU
- * @date May 2018
+ * @date 2018
  *
  * @brief Contains structs and functions to work with shared receive queues.
  */

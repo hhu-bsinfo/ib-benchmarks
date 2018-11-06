@@ -4,7 +4,7 @@
  * All messages have the following format: [NAME][TYPE]MESSAGE\n
  *
  * @author Fabian Ruhland, HHU
- * @date May 2018
+ * @date 2018
  */
 class Log {
 
