@@ -54,8 +54,8 @@
  *     <li>Show infiniband perfomance counters 
  *     <ul>
  *         <li>'mad'    = Use libibmad to get performance counters (requires root-privileges!)\n
- *         <li>'compat' = Use filesystem to get performance counters\n"
- *         <li>'off'    = Don't show performance counters (Default).\n"
+ *         <li>'compat' = Use filesystem to get performance counters\n
+ *         <li>'off'    = Don't show performance counters (Default).\n
  * </ul>
  * <li>-v, --verbosity\n
  * <ul>
