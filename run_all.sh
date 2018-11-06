@@ -1,7 +1,9 @@
 #!/bin/bash
 
-readonly GIT_REV="$(git rev-parse --short HEAD)"
-readonly DATE="$(date '+%Y-%m-%d %H:%M:%S')"
+readonly GIT_VERSION="$(git describe --tags --abbrev=0 2>/dev/null)"
+readonly GIT_BRANCH="$(git rev-parse --symbolic-full-name --abbrev-ref HEAD 2>/dev/null)"
+readonly GIT_REV="$(git rev-parse --short HEAD 2>/dev/null)"
+readonly DATE="$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null)"
 
 JAVA_PATH="java"
 MODE=""
@@ -30,7 +32,7 @@ print_usage()
     -rs, --raw-statistics
         Set the way to get the infiniband performance counters to either 'mad' (requires root!) or 'compat' (default: 'compat').
     -h, --help
-        Show this help message\n"
+        Show this help message\\n"
 }
 
 
@@ -61,7 +63,7 @@ parse_args()
             exit 0
             ;;
             *)
-            printf "Unknown option '${arg}'\n"
+            printf "Unknown option '%s'\\n" "${arg}"
             print_usage
             exit 1
             ;;
@@ -70,17 +72,17 @@ parse_args()
     done
 
     if [ "${MODE}" != "server" ] && [ "${MODE}" != "client" ]; then
-        printf "\e[91mInvalid mode '${MODE}'!\e[0m\n"
+        printf "\\e[91mInvalid mode '%s'!\\e[0m\\n" "${arg}"
         exit 1
     fi
 
     if [ "${MODE}" = "client" ] && [ "${REMOTE_ADDRESS}" = "" ]; then
-        printf "\e[91mMissing required parameter '--remote'!\e[0m\n"
+        printf "\\e[91mMissing required parameter '--remote'!\\e[0m\\n"
         exit 1
     fi
 
     if [ "${RS_MODE}" != "mad" ] && [ "${RS_MODE}" != "compat" ]; then
-        printf "\e[91mInvalid raw statistics mode '${RS_MODE}'!\e[0m\n"
+        printf "\\e[91mInvalid raw statistics mode '%s'!\\e[0m\\n" "${RS_MODE}"
         exit 1
     fi
 }
@@ -92,17 +94,17 @@ gen_plot_file()
     local ylabel=$3
 
     local plot="\
-            FILES = system(\"ls -1 results/${name}/*.csv\")\n\
-            LABELS = system(\"ls -1 results/${name}/*.csv | cut -d'/' -f3 | cut -d'.' -f1\")\n\
-            \n\
-            set title '${name}'\n\
-            set xlabel '${xlabel}'\n\
-            set ylabel '${ylabel}'\n\
-            set grid\n\
-            set xtics ('1' 1, '4' 3, '16' 5, '64' 7, '256' 9, '1K' 11, '4K' 13, '16K' 15, '64K' 17, '256K' 19, '1M' 21, '4M' 23, '16M' 25, '64M' 27, '256M' 29, '1G' 31)\n\
-            set terminal svg\n\
-            set datafile separator ','\n\
-            set output 'results/${name}.svg'\n
+            FILES = system(\"ls -1 results/${name}/*.csv\")\\n\
+            LABELS = system(\"ls -1 results/${name}/*.csv | cut -d'/' -f3 | cut -d'.' -f1\")\\n\
+            \\n\
+            set title '${name}'\\n\
+            set xlabel '${xlabel}'\\n\
+            set ylabel '${ylabel}'\\n\
+            set grid\\n\
+            set xtics ('1' 1, '4' 3, '16' 5, '64' 7, '256' 9, '1K' 11, '4K' 13, '16K' 15, '64K' 17, '256K' 19, '1M' 21, '4M' 23, '16M' 25, '64M' 27, '256M' 29, '1G' 31)\\n\
+            set terminal svg\\n\
+            set datafile separator ','\\n\
+            set output 'results/${name}.svg'\\n
             plot for [i=1:words(FILES)] word(FILES,i) using 0:1 title word(LABELS,i) with lines"
 
     mkdir -p "results"
@@ -118,7 +120,6 @@ benchmark()
     local size="${5}"
     local count="${6}"
     local port="${7}"
-    local jsor_buf_size="1048576"
 
     local params=("-v" "0" "-b" "${benchmark}" "-s" "${size}" "-c" "${count}" "-m" "${MODE}" "-rs" "${RS_MODE}")
 
@@ -144,16 +145,17 @@ benchmark()
         params[19]="${port}"
     fi
     
-    printf "\e[92mRunning '${cmd} ${params[*]}'...\e[0m\n"
+    printf "\\e[92mRunning '%s ${params[*]}'...\\e[0m\\n" "${cmd}"
 
-    local output=$(eval "${cmd} ${params[*]}")
+    local output;
+    output=$(eval "${cmd} ${params[*]}")
 
     if [[ $output = *"ERROR"* ]]; then
-        printf "${output}\n"
-        printf "\e[91mBenchmark exited with an error!\e[0m\n"
+        printf "%s\\n" "${output}"
+        printf "\\e[91mBenchmark exited with an error!\\e[0m\\n\\n"
         exit 1
     else
-        printf "\e[92mBenchmark exited successful!\e[0m\n"
+        printf "\\e[92mBenchmark exited successful!\\e[0m\\n\\n"
     fi
 
     if [ "${MODE}" = "server" ]; then
@@ -172,26 +174,23 @@ benchmark()
         mkdir -p "results/${benchmark}_${transport}_receive_raw_throughput/"
         mkdir -p "results/${benchmark}_${transport}_combined_raw_throughput/"
         
-        local total_time=$(echo "${output}" | sed '1q;d')
-        local total_data=$(echo "${output}" | sed '2q;d')
-        local send_pkts_tp=$(echo "${output}" | sed '3q;d')
-        local recv_pkts_tp=$(echo "${output}" | sed '4q;d')
-        local combined_pkts_tp=$(echo "${output}" | sed '5q;d')
-        local send_tp=$(echo "${output}" | sed '6q;d')
-        local recv_tp=$(echo "${output}" | sed '7q;d')
-        local combined_tp=$(echo "${output}" | sed '8q;d')
-        local send_lat=$(echo "${output}" | sed '9q;d')
-        local xmit_pkts=$(echo "${output}" | sed '10q;d')
-        local rcv_pkts=$(echo "${output}" | sed '11q;d')
-        local xmit_bytes=$(echo "${output}" | sed '12q;d')
-        local rcv_bytes=$(echo "${output}" | sed '13q;d')
-        local send_overhead=$(echo "${output}" | sed '14q;d')
-        local send_overhead_perc=$(echo "${output}" | sed '15q;d')
-        local recv_overhead=$(echo "${output}" | sed '16q;d')
-        local recv_overhead_perc=$(echo "${output}" | sed '17q;d')
-        local send_raw_tp=$(echo "${output}" | sed '18q;d')
-        local recv_raw_tp=$(echo "${output}" | sed '19q;d')
-        local combined_raw_tp=$(echo "${output}" | sed '20q;d')
+        local send_pkts_tp recv_pkts_tp combined_pkts_tp send_tp recv_tp combined_tp send_lat send_overhead;
+        local send_overhead_perc recv_overhead recv_overhead_perc send_raw_tp recv_raw_tp combined_raw_tp;
+
+        send_pkts_tp=$(echo "${output}" | sed '3q;d')
+        recv_pkts_tp=$(echo "${output}" | sed '4q;d')
+        combined_pkts_tp=$(echo "${output}" | sed '5q;d')
+        send_tp=$(echo "${output}" | sed '6q;d')
+        recv_tp=$(echo "${output}" | sed '7q;d')
+        combined_tp=$(echo "${output}" | sed '8q;d')
+        send_lat=$(echo "${output}" | sed '9q;d')
+        send_overhead=$(echo "${output}" | sed '14q;d')
+        send_overhead_perc=$(echo "${output}" | sed '15q;d')
+        recv_overhead=$(echo "${output}" | sed '16q;d')
+        recv_overhead_perc=$(echo "${output}" | sed '17q;d')
+        send_raw_tp=$(echo "${output}" | sed '18q;d')
+        recv_raw_tp=$(echo "${output}" | sed '19q;d')
+        combined_raw_tp=$(echo "${output}" | sed '20q;d')
 
         echo -e "${send_pkts_tp}" >> "results/${benchmark}_${transport}_send_pkts_throughput/${name}.csv"
         echo -e "${recv_pkts_tp}" >> "results/${benchmark}_${transport}_recv_pkts_throughput/${name}.csv"
@@ -208,14 +207,21 @@ benchmark()
         echo -e "${recv_raw_tp}" >> "results/${benchmark}_${transport}_receive_raw_throughput/${name}.csv"
         echo -e "${combined_raw_tp}" >> "results/${benchmark}_${transport}_combined_raw_throughput/${name}.csv"
     else
-        printf "\e[92m3...\e[0m"
+        printf "\\e[92mWaiting for server to become ready... \\e[0m"
+        printf "\\e[92m3...\\e[0m"
         sleep 1s
-        printf "\e[92m2...\e[0m"
+        printf "\\e[92m2...\\e[0m"
         sleep 1s
-        printf "\e[92m1...\e[0m"
+        printf "\\e[92m1...\\e[0m"
         sleep 1s
-        printf "\n"
+        printf "\\n"
     fi
+}
+
+wait()
+{
+    printf "\\e[94mWaiting 1 minute for ports to be available again...\\e[0m\\n\\n"
+    sleep 60
 }
 
 run_benchmark_series()
@@ -224,59 +230,44 @@ run_benchmark_series()
     local cmd="${2}"
     local benchmark="${3}"
     local transport="${4}"
-    local jsor_buf_size="0"
 
-    for i in `seq 0 20`; do
-        local size=$((2**$i))
+    for i in $(seq 0 20); do
+        local size=$((2**i))
         local count=100000000
         
-        if [ $i -ge 13 ]; then
-            count=$((count/$((2**$(($i-12))))))
+        if [ "${i}" -ge 13 ]; then
+            count=$((count/$((2**$((i-12))))))
         fi
         
-        benchmark "${name}" "${cmd}" "${benchmark}" "${transport}" "${size}" "${count}" "$((8000+$i))"
+        benchmark "${name}" "${cmd}" "${benchmark}" "${transport}" "${size}" "${count}" "$((8000+i))"
     done
+
+    wait
 }
 
-wait()
-{
-    printf "Waiting 1 minute for ports to be available again...\n"
-    sleep 60
-}
-
-printf "\e[94mRunning automatic benchmark script!\e[0m\n"
-printf "\e[94mDate: ${DATE}, git ${GIT_REV}!\e[0m\n\n"
+printf "\\e[94mRunning automatic benchmark script!\\e[0m\\n"
+printf "\\e[94mversion: %s(%s) - git %s, date: %s!\\e[0m\\n\\n" "${GIT_VERSION}" "${GIT_BRANCH}" "${GIT_REV}" "${DATE}"
 
 parse_args "$@"
 
-printf "\e[94mUsing '${JAVA_PATH}' for IPoIB, libvma, JSOR and jVerbs!\e[0m\n\n"
+printf "\\e[94mUsing '%s' for IPoIB, libvma, JSOR and jVerbs!\\e[0m\\n" "${JAVA_PATH}"
+printf "\\e[94mUsing '%s' for libvma!\\e[0m\\n\\n" "${LIBVMA_PATH}"
 
 JSOCKET_CMD="${JAVA_PATH} -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
 LIBVMA_CMD="sudo LD_PRELOAD=~/libvma.so.8.7.0 ${JAVA_PATH} -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
-JSOR_CMD="${JAVA_PATH} -Dcom.ibm.net.rdma.conf=src/JSocketBench/jsor_${MODE}.conf -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
+JSOR_CMD="IBM_JAVA_RDMA_SBUF_SIZE=1048576 IBM_JAVA_RDMA_RBUF_SIZE=1048576 ${JAVA_PATH} -Dcom.ibm.net.rdma.conf=src/JSocketBench/jsor_${MODE}.conf -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
 JVERBS_CMD="${JAVA_PATH} -Djava.net.preferIPv4Stack=true -jar src/JVerbsBench/build/libs/JVerbsBench.jar"
 
 rm -rf "results"
 
-run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
-wait
-run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
-wait
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "rdma"
-wait
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "rdma"
-wait
+run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
+run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "msg"
-wait
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "msg"
-wait
 run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
-wait
 run_benchmark_series "libvma" "${LIBVMA_CMD}" "unidirectional"
-wait
 run_benchmark_series "libvma" "${LIBVMA_CMD}" "bidirectional"
-wait
 run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "unidirectional"
-wait
 run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "bidirectional"
-wait
