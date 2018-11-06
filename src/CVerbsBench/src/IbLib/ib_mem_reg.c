@@ -22,7 +22,7 @@ void init_mem_reg(ib_mem_reg *mem_reg, uint64_t size) {
              mem_reg->size, mem_reg->id, (uint64_t) mem_reg->addr);
 }
 
-void close_mem_reg(ib_mem_reg *mem_reg) {
+void destroy_mem_reg(ib_mem_reg *mem_reg) {
     free(mem_reg->addr);
 
     LOG_INFO("MEMORY REGION", "Freed memory region with id %d at address 0x%016lx, size %ld!",

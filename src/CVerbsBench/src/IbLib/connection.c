@@ -186,6 +186,9 @@ void close_connection(connection *conn) {
     deregister_memory_region(conn->prot_dom, conn->send_mem_reg);
     deregister_memory_region(conn->prot_dom, conn->recv_mem_reg);
 
+    destroy_mem_reg(conn->send_mem_reg);
+    destroy_mem_reg(conn->recv_mem_reg);
+
     free(conn->send_mem_reg->addr);
     free(conn->recv_mem_reg->addr);
 

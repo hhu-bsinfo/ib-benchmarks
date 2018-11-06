@@ -30,7 +30,6 @@ typedef struct ib_mem_reg {
  * Initialize a memory region.
  *
  * After a memory region has been initialized, it can be registered by calling register_memory_region().
- * There is no close-/destroy-function for memory region, as this is done by deregister_memory_region().
  *
  * @param mem_reg The memory region to be initialized
  * @param addr The buffer to be used as a memory region
@@ -38,6 +37,13 @@ typedef struct ib_mem_reg {
  */
 void init_mem_reg(ib_mem_reg *mem_reg, uint64_t size);
 
-void close_mem_reg(ib_mem_reg *mem_reg);
+/**
+ * Free the memory, that has been allocated by a given memory region.
+ * 
+ * The ib_mem_reg-struct will be useless after calling this function and can be freed.
+ *
+ * @param mem_reg The memory region to be destroyed
+ */
+void destroy_mem_reg(ib_mem_reg *mem_reg);
 
 #endif
