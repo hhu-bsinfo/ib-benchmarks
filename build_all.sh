@@ -1,7 +1,9 @@
 #!/bin/bash
 
+readonly GIT_VERSION="$(git describe --tags --abbrev=0)"
+readonly GIT_BRANCH="$(git rev-parse --symbolic-full-name --abbrev-ref HEAD)"
 readonly GIT_REV="$(git rev-parse --short HEAD)"
-readonly BUILD_DATE="$(date '+%Y-%m-%d %H:%M:%S')"
+readonly DATE="$(date '+%Y-%m-%d %H:%M:%S')"
 
 MODE="build"
 JAVA_PATH=""
@@ -15,7 +17,7 @@ print_usage()
     -j, --java
         Set the path to your default JVM
     -h, --help
-        Show this help message\n"
+        Show this help message\\n"
 }
 
 parse_opts()
@@ -36,7 +38,7 @@ parse_opts()
             exit 0
             ;;
             *)
-            printf "Unknown option '${arg}'\n"
+            printf "Unknown option '%s'\\n" "${arg}"
             print_usage
             exit 1
             ;;
@@ -49,23 +51,23 @@ generate_doc()
 {
     local prog=$1
 
-    printf "\n\e[92mGenerating documentation for ${prog}...\e[0m\n"
+    printf "\\n\\e[92mGenerating documentation for '%s'...\\e[0m\\n" "${prog}"
 
-    mkdir -p doc/${prog}/
+    mkdir -p "doc/${prog}/"
     
-    printf "\n\n\n\n\nExecuting 'doxygen src/${prog}/doxygen.conf':\n\n" >> build.log 2>&1
+    printf "\\n\\n\\n\\n\\nExecuting 'doxygen src/%s/doxygen.conf':\\n\\n" "${prog}" >> build.log
 
-    doxygen src/${prog}/doxygen.conf >> build.log
+    doxygen "src/${prog}/doxygen.conf" >> build.log 2>&1
 
     if [ $? -eq 0 ]; then
-        printf "\e[92mFinished successfully!\e[0m\n"
+        printf "\\e[92mFinished successfully!\\e[0m\\n"
     else
-        printf "\e[91mFinished unsuccessfully!\e[0m\n"
-        printf "\n\e[94mSee 'build.log' for detailed output messages!\e[0m\n"
+        printf "\\e[91mFinished with an error!\\e[0m\\n"
+        printf "\\n\\e[94mSee 'build.log' for detailed output messages!\\e[0m\\n"
         exit 1
     fi
 
-    ln -s ${prog}/html/index.html doc/${prog}.html
+    ln -s "${prog}/html/index.html" "doc/${prog}.html"
 }
 
 build()
@@ -73,21 +75,21 @@ build()
     local prog=$1
     local cmd=$2
 
-    printf "\n\e[92mBuilding ${prog}...\e[0m\n"
+    printf "\\n\\e[92mBuilding '%s'...\\e[0m\\n" "${prog}"
     
-    printf "\n\n\n\n\nExecuting '${cmd}':\n\n" >> build.log
+    printf "\\n\\n\\n\\n\\nExecuting '%s':\\n\\n" "${cmd}" >> build.log
     
     cd "src/${prog}" && $cmd >> ../../build.log 2>&1
 
     if [ $? -eq 0 ]; then
-        printf "\e[92mBuild successful!\e[0m\n"
+        printf "\\e[92mBuild successful!\\e[0m\\n"
     else
-        printf "\e[91mBuild unsuccessful!\e[0m\n"
-        printf "\n\e[94mSee 'build.log' for detailed output messages!\e[0m\n"
+        printf "\\e[91mBuild failed!\\e[0m\\n"
+        printf "\\n\\e[94mSee 'build.log' for detailed output messages!\\e[0m\\n"
         exit 1
     fi
 
-    cd ../..
+    cd "../.." || exit;
 }
 
 clean()
@@ -95,21 +97,21 @@ clean()
     local prog=$1
     local cmd=$2
     
-    printf "\n\e[92mCleaning ${prog}...\e[0m\n"
+    printf "\\n\\e[92mCleaning '%s'...\\e[0m\\n" "${prog}"
     
-    printf "\n\n\n\n\nExecuting '${cmd}':\n\n" >> build.log
+    printf "\\n\\n\\n\\n\\nExecuting '%s':\\n\\n" "${cmd}" >> build.log
     
     cd "src/${prog}" && $cmd >> ../../build.log 2>&1
 
     if [ $? -eq 0 ]; then
-        printf "\e[92mCleaned successful!\e[0m\n"
+        printf "\\e[92mCleaned successful!\\e[0m\\n"
     else
-        printf "\e[91mCleaned unsuccessful!\e[0m\n"
-        printf "\n\e[94mSee 'build.log' for detailed output messages!\e[0m\n"
+        printf "\\e[91mCleaning failed!\\e[0m\\n"
+        printf "\\n\\e[94mSee 'build.log' for detailed output messages!\\e[0m\\n"
         exit 1
     fi
 
-    cd ../..
+    cd "../.." || exit;
 }
 
 generate_all_docs()
@@ -141,12 +143,12 @@ clean_all()
     clean "JVerbsBench" "./gradlew clean"
 }
 
-printf "\e[94mRunning automatic build script!\e[0m\n"
-printf "\e[94mBuild date: ${BUILD_DATE}, git ${GIT_REV}!\e[0m\n"
+printf "\\e[94mRunning automatic build script!\\e[0m\\n"
+printf "\\e[94mversion: %s(%s) - git %s, date: %s!\\e[0m\\n\\n" "${GIT_VERSION}" "${GIT_BRANCH}" "${GIT_REV}" "${DATE}"
 
-parse_opts $@
+parse_opts "$@"
 
-printf "Log from ${BUILD_DATE}" > build.log
+printf "Log from %s" "${BUILD_DATE}" > build.log
 
 case $MODE in
     build)
@@ -159,11 +161,11 @@ case $MODE in
         clean_all
         ;;
     *)
-        printf "Unknown mode '${MODE}'\n"
+        printf "Unknown mode '%s'\\n" "${MODE}"
         print_usage
         exit 1
 esac
 
-printf "\n\e[94mSee 'build.log' for detailed output messages!\e[0m\n"
+printf "\\n\\e[94mSee 'build.log' for detailed output messages!\\e[0m\\n"
 
 exit 0
