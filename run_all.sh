@@ -6,6 +6,7 @@ readonly GIT_REV="$(git rev-parse --short HEAD 2>/dev/null)"
 readonly DATE="$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null)"
 
 JAVA_PATH="java"
+LIBVMA_PATH="libvma.so"
 MODE=""
 REMOTE_ADDRESS=""
 BIND_ADDRESS=""
@@ -23,6 +24,8 @@ print_usage()
     Available options:
     -j, --java
         Set the path to your default JVM (default: 'java').
+    -l, --libvma
+        Set the path to the libvma shared object file (default 'libvma.so').
     -m, --mode
         Set the operating mode (server/client). This is a required option!
     -r, --remote
@@ -45,6 +48,9 @@ parse_args()
         case $arg in
             -j|--java)
             JAVA_PATH=$val
+            ;;
+            -l|--libvma)
+            LIBVMA_PATH=$val
             ;;
             -m|--mode)
             MODE=$val
@@ -254,7 +260,7 @@ printf "\\e[94mUsing '%s' for IPoIB, libvma, JSOR and jVerbs!\\e[0m\\n" "${JAVA_
 printf "\\e[94mUsing '%s' for libvma!\\e[0m\\n\\n" "${LIBVMA_PATH}"
 
 JSOCKET_CMD="${JAVA_PATH} -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
-LIBVMA_CMD="sudo LD_PRELOAD=~/libvma.so.8.7.0 ${JAVA_PATH} -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
+LIBVMA_CMD="sudo LD_PRELOAD=${LIBVMA_PATH} ${JAVA_PATH} -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
 JSOR_CMD="IBM_JAVA_RDMA_SBUF_SIZE=1048576 IBM_JAVA_RDMA_RBUF_SIZE=1048576 ${JAVA_PATH} -Dcom.ibm.net.rdma.conf=src/JSocketBench/jsor_${MODE}.conf -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
 JVERBS_CMD="${JAVA_PATH} -Djava.net.preferIPv4Stack=true -jar src/JVerbsBench/build/libs/JVerbsBench.jar"
 
