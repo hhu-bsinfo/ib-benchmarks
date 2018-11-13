@@ -1,0 +1,11 @@
+#!/bin/bash
+
+#PBS -l select=2:ncpus=24:mem=64GB:arch=skylake
+#PBS -l place=scatter
+#PBS -l walltime=48:00:00
+#PBS -r n
+#PBS -A DXRAM
+
+cat $PBS_NODEFILE > pbs_nodes
+
+pbsdsh -v $PBS_O_WORKDIR/bench.sh
