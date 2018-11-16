@@ -7,15 +7,18 @@ readonly DATE="$(date '+%Y-%m-%d %H:%M:%S')"
 
 MODE="build"
 JAVA_PATH=""
+J9_JAVA_PATH=""
 
 print_usage()
 {
     printf "Usage: ./build_all.sh [OPTION...]
     Available options:
+    -j, --java
+        Set the path to your default JDK, which will be used to build JSocketBench.
+    -i, --java
+        Set the path to your J9 JDK, which will be used to build JVerbsBench.
     -m, --mode
         Set the operating mode to either 'build', 'doc' or 'clean' (default: build)
-    -j, --java
-        Set the path to your default JVM
     -h, --help
         Show this help message\\n"
 }
@@ -27,11 +30,14 @@ parse_opts()
         local val=$2
         
         case $1 in
-            -m|--mode)
-            MODE=$val
-            ;;
             -j|--java)
             JAVA_PATH=$val
+            ;;
+            -i|--ibm-java)
+            J9_JAVA_PATH=$val
+            ;;
+            -m|--mode)
+            MODE=$val
             ;;
             -h|--help)
             print_usage
@@ -129,10 +135,14 @@ build_all()
 
     if [ -z "${JAVA_PATH}" ]; then
         build "JSocketBench" "./gradlew build"
-	build "JVerbsBench" "./gradlew build"
     else
         build "JSocketBench" "./gradlew build -Dorg.gradle.java.home=${JAVA_PATH}"
-	build "JVerbsBench" "./gradlew build -Dorg.gradle.java.home=${JAVA_PATH}"
+    fi
+
+    if [ -z "${J9_JAVA_PATH}" ]; then
+        build "JVerbsBench" "./gradlew build"
+    else
+        build "JVerbsBench" "./gradlew build -Dorg.gradle.java.home=${J9_JAVA_PATH}"
     fi
 }
 
@@ -148,7 +158,7 @@ printf "\\e[94mversion: %s(%s) - git %s, date: %s!\\e[0m\\n\\n" "${GIT_VERSION}"
 
 parse_opts "$@"
 
-printf "Log from %s" "${BUILD_DATE}" > build.log
+printf "Log from %s" "${DATE}" > build.log
 
 case $MODE in
     build)
