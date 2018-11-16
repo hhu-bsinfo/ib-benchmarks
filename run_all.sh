@@ -6,6 +6,7 @@ readonly GIT_REV="$(git rev-parse --short HEAD 2>/dev/null)"
 readonly DATE="$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null)"
 
 JAVA_PATH="java"
+J9_JAVA_PATH="java"
 LIBVMA_PATH="libvma.so"
 MODE=""
 REMOTE_ADDRESS=""
@@ -23,7 +24,9 @@ print_usage()
     printf "Usage: ./run_all.sh [OPTION...]
     Available options:
     -j, --java
-        Set the path to your default JVM (default: 'java').
+        Set the path to your default JVM, which will be used to run JSocketBench (default: 'java').
+    -i, --ibm-java
+        Set the path to your J9 JVM, which will be used to run JVerbsBench (default: 'java').
     -l, --libvma
         Set the path to the libvma shared object file (default 'libvma.so').
     -m, --mode
@@ -48,6 +51,9 @@ parse_args()
         case $arg in
             -j|--java)
             JAVA_PATH=$val
+            ;;
+            -i|--ibm-java)
+            J9_JAVA_PATH=$val
             ;;
             -l|--libvma)
             LIBVMA_PATH=$val
@@ -440,13 +446,14 @@ printf "\\e[94mversion: %s(%s) - git %s, date: %s!\\e[0m\\n\\n" "${GIT_VERSION}"
 
 parse_args "$@"
 
-printf "\\e[94mUsing '%s' for IPoIB, libvma, JSOR and jVerbs!\\e[0m\\n" "${JAVA_PATH}"
+printf "\\e[94mUsing '%s' for IPoIB and libvma!\\e[0m\\n" "${JAVA_PATH}"
+printf "\\e[94mUsing '%s' for JSOR and jVerbs!\\e[0m\\n" "${J9_JAVA_PATH}"
 printf "\\e[94mUsing '%s' for libvma!\\e[0m\\n\\n" "${LIBVMA_PATH}"
 
 JSOCKET_CMD="${JAVA_PATH} -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
 LIBVMA_CMD="sudo LD_PRELOAD=${LIBVMA_PATH} ${JAVA_PATH} -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
-JSOR_CMD="IBM_JAVA_RDMA_SBUF_SIZE=1048576 IBM_JAVA_RDMA_RBUF_SIZE=1048576 ${JAVA_PATH} -Dcom.ibm.net.rdma.conf=src/JSocketBench/jsor_${MODE}.conf -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
-JVERBS_CMD="${JAVA_PATH} -Djava.net.preferIPv4Stack=true -jar src/JVerbsBench/build/libs/JVerbsBench.jar"
+JSOR_CMD="IBM_JAVA_RDMA_SBUF_SIZE=1048576 IBM_JAVA_RDMA_RBUF_SIZE=1048576 ${J9_JAVA_PATH} -Dcom.ibm.net.rdma.conf=src/JSocketBench/jsor_${MODE}.conf -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
+JVERBS_CMD="${J9_JAVA_PATH} -Djava.net.preferIPv4Stack=true -jar src/JVerbsBench/build/libs/JVerbsBench.jar"
 
 rm -rf "results"
 
