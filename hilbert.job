@@ -6,6 +6,10 @@
 #PBS -r n
 #PBS -A DXRAM
 
+module load gcc/8.1.0
+module load cmake/3.11.2
+moudle load java/1.8.0_151
+
 cat $PBS_NODEFILE > pbs_nodes
 
 pbsdsh -v $PBS_O_WORKDIR/bench.sh
