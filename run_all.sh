@@ -236,6 +236,7 @@ gen_plot_file()
     local name="${2}"
     local xlabel="${3}"
     local ylabel="${4}"
+    local logscale="${5}"
     local colors="${*:6}"
 
     local plot="\
@@ -245,21 +246,40 @@ gen_plot_file()
             COLORS = \"${colors}\"\
             \\n\
             set xlabel '${xlabel}'\\n\
-            set ylabel 'Messages [millions/s]'\\n\
-            set y2label '${ylabel}'\\n\
             set grid\\n\
             set key above\\n\
             set xtics ('1' 0, '4' 2, '16' 4, '64' 6, '256' 8, '1K' 10, '4KiB' 12, '16KiB' 14, '64KiB' 16, '256KiB' 18, '1MiB' 20)\\n\
             set xrange [0:20]\\n\
             set ytics nomirror\\n\
-            set y2tics\\n\
             set datafile separator ','\\n\
             set terminal svg\\n\
-            set output 'output/${name}.svg'
-            plot for [i=1:words(FILES)] word(FILES,i) using 0:1:2:3 title word(LABELS,i) axes x1y2 with yerrorbars lt rgb word(COLORS,i) dt 1 pt i, \
-                 for [i=1:words(FILES)] word(FILES,i) using 0:1 notitle axes x1y2 with lines lt rgb word(COLORS,i) dt 1, \
-                 for [i=1:words(PACKET_FILES)] word(PACKET_FILES,i) using 0:1:2:3 notitle axes x1y1 with yerrorbars lt rgb word(COLORS,i) dt 1 pt i, \
-                 for [i=1:words(PACKET_FILES)] word(PACKET_FILES,i) using 0:1 notitle axes x1y1 with lines lt rgb word(COLORS,i) dt 2"
+            set output 'output/${name}.svg'\\n"
+
+    if [ "${logscale}" == "true" ]; then
+        plot+="set logscale y\\n"
+    fi
+
+    if [ "${name}" == "overhead" ]; then
+        plot+="set ylabel '${ylabel}'\\n\
+               plot for [i=1:words(FILES)] word(FILES,i) using 0:1:2:3 title word(LABELS,i) axes x1y1 with yerrorbars lt rgb word(COLORS,i) dt i pt i, \
+                    for [i=1:words(FILES)] word(FILES,i) using 0:1 notitle axes x1y1 with lines lt rgb word(COLORS,i) dt i"
+    elif [ "${name}" == "latency" ]; then
+        plot+="set ylabel '${ylabel}'\\n\
+               set y2label 'Messages [millions/s]'\\n\
+               set y2tics\\n\
+               plot for [i=1:words(FILES)] word(FILES,i) using 0:1:2:3 title word(LABELS,i) axes x1y1 with yerrorbars lt rgb word(COLORS,i) dt 1 pt i, \
+                    for [i=1:words(FILES)] word(FILES,i) using 0:1 notitle axes x1y1 with lines lt rgb word(COLORS,i) dt 1, \
+                    for [i=1:words(PACKET_FILES)] word(PACKET_FILES,i) using 0:1:2:3 notitle axes x1y2 with yerrorbars lt rgb word(COLORS,i) dt 1 pt i, \
+                    for [i=1:words(PACKET_FILES)] word(PACKET_FILES,i) using 0:1 notitle axes x1y2 with lines lt rgb word(COLORS,i) dt 2"
+    else
+        plot+="set ylabel 'Messages [millions/s]'\\n\
+               set y2label '${ylabel}'\\n\
+               set y2tics\\n\
+               plot for [i=1:words(FILES)] word(FILES,i) using 0:1:2:3 title word(LABELS,i) axes x1y2 with yerrorbars lt rgb word(COLORS,i) dt 1 pt i, \
+                    for [i=1:words(FILES)] word(FILES,i) using 0:1 notitle axes x1y2 with lines lt rgb word(COLORS,i) dt 1, \
+                    for [i=1:words(PACKET_FILES)] word(PACKET_FILES,i) using 0:1:2:3 notitle axes x1y1 with yerrorbars lt rgb word(COLORS,i) dt 1 pt i, \
+                    for [i=1:words(PACKET_FILES)] word(PACKET_FILES,i) using 0:1 notitle axes x1y1 with lines lt rgb word(COLORS,i) dt 2"
+    fi
     
     if [ ! -d "${path}/output" ]; then
         mkdir -p "${path}/output"
@@ -310,19 +330,21 @@ sort_csv_values()
 
 assemble_results()
 {
-    gen_plot_file "results/graphs/unidirectional/verbs" "latency" "Message size [Bytes]" "Latency [us]" "red" "green" "blue"
-    gen_plot_file "results/graphs/unidirectional/verbs" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "red" "green" "blue"
-    gen_plot_file "results/graphs/unidirectional/sockets" "latency" "Message size [Bytes]" "Latency [us]" "#8B008B" "#006400" "orange" "#191970"
-    gen_plot_file "results/graphs/unidirectional/sockets" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "#8B008B" "#006400" "orange" "#191970"
-    gen_plot_file "results/graphs/unidirectional/mixed" "latency" "Message size [Bytes]" "Latency [us]" "red" "orange" "blue" "#191970"
-    gen_plot_file "results/graphs/unidirectional/mixed" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "red" "orange" "blue" "#191970"
+    gen_plot_file "results/graphs/unidirectional/verbs" "latency" "Message size [Bytes]" "Latency [us]" "true" "red" "green" "blue"
+    gen_plot_file "results/graphs/unidirectional/verbs" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "red" "green" "blue"
+    gen_plot_file "results/graphs/unidirectional/verbs" "overhead" "Message size [Bytes]" "Overhead [%]" "true" "red" "green" "blue"
+    gen_plot_file "results/graphs/unidirectional/sockets" "latency" "Message size [Bytes]" "Latency [us]" "true" "#8B008B" "#006400" "orange" "#191970"
+    gen_plot_file "results/graphs/unidirectional/sockets" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "#8B008B" "#006400" "orange" "#191970"
+    gen_plot_file "results/graphs/unidirectional/sockets" "overhead" "Message size [Bytes]" "Overhead [%]" "true" "#8B008B" "#006400" "orange" "#191970"
+    gen_plot_file "results/graphs/unidirectional/mixed" "latency" "Message size [Bytes]" "Latency [us]" "true" "red" "orange" "true" "blue" "#191970"
+    gen_plot_file "results/graphs/unidirectional/mixed" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "red" "orange" "blue" "#191970"
 
-    gen_plot_file "results/graphs/bidirectional/verbs" "latency" "Message size [Bytes]" "Latency [us]" "red" "green" "blue"
-    gen_plot_file "results/graphs/bidirectional/verbs" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "red" "green" "blue"
-    gen_plot_file "results/graphs/bidirectional/sockets" "latency" "Message size [Bytes]" "Latency [us]" "#8B008B" "#006400" "orange" "#191970"
-    gen_plot_file "results/graphs/bidirectional/sockets" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "#8B008B" "#006400" "orange" "#191970"
-    gen_plot_file "results/graphs/bidirectional/mixed" "latency" "Message size [Bytes]" "Latency [us]" "red" "orange" "blue" "#191970"
-    gen_plot_file "results/graphs/bidirectional/mixed" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "red" "orange" "blue" "#191970"
+    gen_plot_file "results/graphs/bidirectional/verbs" "latency" "Message size [Bytes]" "Latency [us]" "true" "red" "green" "blue"
+    gen_plot_file "results/graphs/bidirectional/verbs" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "red" "green" "blue"
+    gen_plot_file "results/graphs/bidirectional/sockets" "latency" "Message size [Bytes]" "Latency [us]" "true" "#8B008B" "#006400" "orange" "#191970"
+    gen_plot_file "results/graphs/bidirectional/sockets" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "#8B008B" "#006400" "orange" "#191970"
+    gen_plot_file "results/graphs/bidirectional/mixed" "latency" "Message size [Bytes]" "Latency [us]" "true" "red" "orange" "blue" "#191970"
+    gen_plot_file "results/graphs/bidirectional/mixed" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "red" "orange" "blue" "#191970"
 
     sort_csv_values
 
@@ -338,6 +360,10 @@ assemble_results()
     cp "results/sorted/unidirectional_rdma_send_pkts_throughput/CVerbsBench.csv" "results/graphs/unidirectional/verbs/packets-throughput/CVerbsBench(rdma).csv"
     cp "results/sorted/unidirectional_rdma_send_pkts_throughput/JVerbsBench.csv" "results/graphs/unidirectional/verbs/packets-throughput/JVerbsBench(rdma).csv"
 
+    cp "results/sorted/unidirectional_msg_send_overhead_perc/CVerbsBench.csv" "results/graphs/unidirectional/verbs/overhead/CVerbsBench(msg).csv"
+    cp "results/sorted/unidirectional_rdma_send_overhead_perc/CVerbsBench.csv" "results/graphs/unidirectional/verbs/overhead/CVerbsBench(rdma).csv"
+    cp "results/sorted/unidirectional_rdma_send_overhead_perc/JVerbsBench.csv" "results/graphs/unidirectional/verbs/overhead/JVerbsBench(rdma).csv"
+
     cp "results/sorted/unidirectional_msg_latency/IPoIB.csv" "results/graphs/unidirectional/sockets/latency/IPoIB.csv"
     cp "results/sorted/unidirectional_rdma_latency/JSOR.csv" "results/graphs/unidirectional/sockets/latency/JSOR.csv"
     cp "results/sorted/unidirectional_rdma_latency/libvma.csv" "results/graphs/unidirectional/sockets/latency/libvma.csv"
@@ -346,9 +372,13 @@ assemble_results()
     cp "results/sorted/unidirectional_rdma_latency/JSOR.csv" "results/graphs/unidirectional/sockets/throughput/JSOR.csv"
     cp "results/sorted/unidirectional_rdma_latency/libvma.csv" "results/graphs/unidirectional/sockets/throughput/libvma.csv"
 
-    cp "results/sorted/unidirectional_msg_latency/IPoIB.csv" "results/graphs/unidirectional/sockets/packets-throughput/IPoIB.csv"
-    cp "results/sorted/unidirectional_rdma_latency/JSOR.csv" "results/graphs/unidirectional/sockets/packets-throughput/JSOR.csv"
-    cp "results/sorted/unidirectional_rdma_latency/libvma.csv" "results/graphs/unidirectional/sockets/packets-throughput/libvma.csv"
+    cp "results/sorted/unidirectional_msg_send_overhead_perc/IPoIB.csv" "results/graphs/unidirectional/overhead/packets-throughput/IPoIB.csv"
+    cp "results/sorted/unidirectional_rdma_send_overhead_perc/JSOR.csv" "results/graphs/unidirectional/overhead/packets-throughput/JSOR.csv"
+    cp "results/sorted/unidirectional_rdma_send_overhead_perc/libvma.csv" "results/graphs/unidirectional/overhead/packets-throughput/libvma.csv"
+
+    cp "results/sorted/unidirectional_msg_latency/IPoIB.csv" "results/graphs/unidirectional/sockets/latency/IPoIB.csv"
+    cp "results/sorted/unidirectional_rdma_latency/JSOR.csv" "results/graphs/unidirectional/sockets/latency/JSOR.csv"
+    cp "results/sorted/unidirectional_rdma_latency/libvma.csv" "results/graphs/unidirectional/sockets/latency/libvma.csv"
 
     cp "results/sorted/unidirectional_msg_latency/CVerbsBench.csv" "results/graphs/unidirectional/mixed/latency/CVerbsBench(msg).csv"
     cp "results/sorted/unidirectional_rdma_latency/JVerbsBench.csv" "results/graphs/unidirectional/mixed/latency/JVerbsBench(rdma).csv"
