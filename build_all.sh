@@ -1,9 +1,9 @@
 #!/bin/bash
 
-readonly GIT_VERSION="$(git describe --tags --abbrev=0)"
-readonly GIT_BRANCH="$(git rev-parse --symbolic-full-name --abbrev-ref HEAD)"
-readonly GIT_REV="$(git rev-parse --short HEAD)"
-readonly DATE="$(date '+%Y-%m-%d %H:%M:%S')"
+readonly GIT_VERSION="$(git describe --tags --abbrev=0 2>/dev/null)"
+readonly GIT_BRANCH="$(git rev-parse --symbolic-full-name --abbrev-ref HEAD 2>/dev/null)"
+readonly GIT_REV="$(git rev-parse --short HEAD 2>/dev/null)"
+readonly DATE="$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null)"
 
 MODE="build"
 JAVA_PATH=""
@@ -51,6 +51,48 @@ parse_args()
         esac
         shift 2
     done
+}
+
+check_config()
+{
+    local java_version j9_java_valid j9_java_version
+
+    printf "\\e[92mChecking configuration...\\e[0m\\n\\n"
+    
+    java_version=$("${JAVA_PATH}/bin/java" -version 2>&1 | sed -n ';s/.* version "\(.*\)\.\(.*\)\..*"/\1\2/p;')
+    j9_java_valid=$("${J9_JAVA_PATH}/bin/java" -version 2>&1 | grep "IBM J9 VM");
+    j9_java_version=$("${J9_JAVA_PATH}/bin/java" -version 2>&1 | sed -n ';s/.* version "\(.*\)\.\(.*\)\..*"/\1\2/p;')
+
+    if [ -z "${java_version}" ]; then
+        printf "\\e[91m'%s' does not seem to contain a valid JDK!\\e[0m\\n" "${JAVA_PATH}"
+        exit 1 
+    fi
+
+    if [ -z "${j9_java_version}" ]; then
+        printf "\\e[91m'%s' does not seem to contain a valid JDK!\\e[0m\\n" "${J9_JAVA_PATH}"
+        exit 1
+    fi
+
+    if [ -z "${j9_java_valid}" ]; then
+        printf "\\e[91m'%s' does not seem to contain a valid IBM JDK!\\e[0m\\n" "${J9_JAVA_PATH}"
+        exit 1
+    fi
+
+    if [ "${java_version}" -lt 18 ]; then
+        printf "\\e[91m'%s' implements a version of java older than 1.8 (determined version %u)!\\e[0m\\n" "${JAVA_PATH}" "${java_version}"
+        exit 1
+    else
+        printf "\\e[92mDefault JVM: '%s' - Determined version: %u --> [VALID]\\n" "${JAVA_PATH}" "${java_version}"
+    fi
+
+    if [ "${j9_java_version}" -lt 18 ]; then
+        printf "\\e[91m'%s' implements a version of java older than 1.8 (determined version %u)!\\e[0m\\n" "${J9_JAVA_PATH}" "${j9_java_version}"
+        exit 1
+    else
+        printf "\\e[92mIBM J9 JVM: '%s' - Determined version: %u --> [VALID]\\n" "${J9_JAVA_PATH}" "${j9_java_version}"
+    fi
+
+    printf "\\n\\e[92mConfiguration seems to be valid!\\e[0m\\n\\n"
 }
 
 generate_doc()
@@ -157,6 +199,7 @@ printf "\\e[94mRunning automatic build script!\\e[0m\\n"
 printf "\\e[94mversion: %s(%s) - git %s, date: %s!\\e[0m\\n\\n" "${GIT_VERSION}" "${GIT_BRANCH}" "${GIT_REV}" "${DATE}"
 
 parse_args "$@"
+check_config
 
 printf "Log from %s" "${DATE}" > build.log
 
