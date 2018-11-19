@@ -5,11 +5,27 @@
 #PBS -l walltime=48:00:00
 #PBS -r n
 #PBS -A DXRAM
+#PBS -q bsinfo
+
+readonly BENCHMARK_PATH="${HOME}/Projekte/jib-benchmarks/"
+readonly JAVA_PATH="/software/java/1.8.0_151/"
+readonly J9_JAVA_PATH="${HOME}/ibm-java-x86_64-80/"
+readonly LIBVMA_PATH="${HOME}/libvma.so.8.7.5"
 
 module load gcc/8.1.0
 module load cmake/3.11.2
-moudle load java/1.8.0_151
+module load Java/1.8.0_151
 
-cat $PBS_NODEFILE > pbs_nodes
+cd "${BENCHMARK_PATH}" || exit 1
 
-pbsdsh -v $PBS_O_WORKDIR/bench.sh
+./build_all.sh -m build -i "${J9_JAVA_PATH}" -j "${JAVA_PATH}"
+
+if [ ! $? -eq 0 ]; then
+    exit 1
+fi
+
+cd ~ || exit 1
+
+cat "${PBS_NODEFILE}" > pbs_nodes
+
+pbsdsh -v "${BENCHMARK_PATH}/hilbert.sh" "${BENCHMARK_PATH}" "${JAVA_PATH}/bin/java" "${J9_JAVA_PATH}/bin/java" "${LIBVMA_PATH}"
