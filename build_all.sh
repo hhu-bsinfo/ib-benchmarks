@@ -15,7 +15,7 @@ print_usage()
     Available options:
     -j, --java
         Set the path to your default JDK, which will be used to build JSocketBench.
-    -i, --java
+    -i, --ibm-java
         Set the path to your J9 JDK, which will be used to build JVerbsBench.
     -m, --mode
         Set the operating mode to either 'build', 'doc' or 'clean' (default: build)
@@ -23,7 +23,7 @@ print_usage()
         Show this help message\\n"
 }
 
-parse_opts()
+parse_args()
 {
     while [ "${1}" != "" ]; do
         local arg=$1
@@ -156,7 +156,7 @@ clean_all()
 printf "\\e[94mRunning automatic build script!\\e[0m\\n"
 printf "\\e[94mversion: %s(%s) - git %s, date: %s!\\e[0m\\n\\n" "${GIT_VERSION}" "${GIT_BRANCH}" "${GIT_REV}" "${DATE}"
 
-parse_opts "$@"
+parse_args "$@"
 
 printf "Log from %s" "${DATE}" > build.log
 

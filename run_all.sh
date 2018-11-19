@@ -99,6 +99,61 @@ parse_args()
     fi
 }
 
+check_config()
+{
+    local java_version j9_java_valid j9_java_version libvma_soname libvma_version
+
+    printf "\\e[92mChecking configuration...\\e[0m\\n\\n"
+    
+    java_version=$("${JAVA_PATH}" -version 2>&1 | sed -n ';s/.* version "\(.*\)\.\(.*\)\..*"/\1\2/p;')
+    j9_java_valid=$("${J9_JAVA_PATH}" -version 2>&1 | grep "IBM J9 VM");
+    j9_java_version=$("${J9_JAVA_PATH}" -version 2>&1 | sed -n ';s/.* version "\(.*\)\.\(.*\)\..*"/\1\2/p;')
+    libvma_soname=$(readelf -d "${LIBVMA_PATH}" | grep SONAME | sed -e 's/.*\[//' -e 's/\]//')
+    libvma_version=$(echo "${libvma_soname}" | sed -e 's/libvma.so.//')
+
+    if [ -z "${java_version}" ]; then
+        printf "\\e[91m'%s' does not seem to be a valid java executable!\\e[0m\\n" "${JAVA_PATH}"
+        exit 1 
+    fi
+
+    if [ -z "${j9_java_version}" ]; then
+        printf "\\e[91m'%s' does not seem to be a valid java executable!\\e[0m\\n" "${J9_JAVA_PATH}"
+        exit 1
+    fi
+
+    if [ -z "${j9_java_valid}" ]; then
+        printf "\\e[91m'%s' does not seem to belong to a valid IBM J9 JVM!\\e[0m\\n" "${J9_JAVA_PATH}"
+        exit 1
+    fi
+
+    if [ "${java_version}" -lt 18 ]; then
+        printf "\\e[91m'%s' implements a version of java older than 1.8 (determined version %u)!\\e[0m\\n" "${JAVA_PATH}" "${java_version}"
+        exit 1
+    else
+        printf "\\e[92mDefault JVM: '%s' - Determined version: %u --> [VALID]\\n" "${JAVA_PATH}" "${java_version}"
+    fi
+
+    if [ "${j9_java_version}" -lt 18 ]; then
+        printf "\\e[91m'%s' implements a version of java older than 1.8 (determined version %u)!\\e[0m\\n" "${J9_JAVA_PATH}" "${j9_java_version}"
+        exit 1
+    else
+        printf "\\e[92mIBM J9 JVM: '%s' - Determined version: %u --> [VALID]\\n" "${J9_JAVA_PATH}" "${j9_java_version}"
+    fi
+
+    if [[ ! "${libvma_soname}" =~ libvma.so ]]; then
+        printf "\\e[91m'%s' is not a valid version of libvma!\\e[0m\\n" "${LIBVMA_PATH}"
+        exit 1
+    fi
+
+    printf "\\e[92mlibvma: '%s' - soname: '%s' - Determined version: %u --> [VALID]\\n" "${LIBVMA_PATH}" "${libvma_soname}" "${libvma_version}"
+
+    if [ "${libvma_version}" -lt 8 ]; then
+        printf "\\e[93mIt seems like you are using an old version of libvma. Consider updating libvma for optimal performance and compatibility!\\e[0m\\n"
+    fi
+
+    printf "\\n\\e[92mConfiguration seems to be valid!\\e[0m\\n\\n"
+}
+
 benchmark()
 {
     local name="${1}"
@@ -445,6 +500,7 @@ printf "\\e[94mRunning automatic benchmark script!\\e[0m\\n"
 printf "\\e[94mversion: %s(%s) - git %s, date: %s!\\e[0m\\n\\n" "${GIT_VERSION}" "${GIT_BRANCH}" "${GIT_REV}" "${DATE}"
 
 parse_args "$@"
+check_config
 
 printf "\\e[94mUsing '%s' for IPoIB and libvma!\\e[0m\\n" "${JAVA_PATH}"
 printf "\\e[94mUsing '%s' for JSOR and jVerbs!\\e[0m\\n" "${J9_JAVA_PATH}"
