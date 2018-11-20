@@ -262,6 +262,58 @@ benchmark()
     fi
 }
 
+perftest_benchmark() {
+    local name="${1}"
+    local outpath="${2}"
+    local benchmark="${3}"
+    local transport="${4}"
+    local size="${5}"
+    local count="${6}"
+    local port="${7}"
+
+    local params
+
+    if [ "${MODE}" = "server" ]; then
+        params=("-s" "${size}" "-n" "${count}" "-p" "${port}" "-I" "0")
+    else
+        params=("${REMOTE_ADDRESS}" "-s" "${size}" "-n" "${count}" "-p" "${port}" "-I" "0")
+    fi
+
+    if [ "${benchmark}" = "bidirectional" ]; then
+        params+=("-b")
+    fi
+
+    printf "\\e[92mRunning '%s ${params[*]}'...\\e[0m\\n" "${name}"
+    eval "${name} ${params[*]}" > "${MODE}_tmp.log" 2>&1
+
+    if [ $? -eq 0 ]; then
+        printf "\\e[92mBenchmark exited successful!\\e[0m\\n\\n"
+    else
+        printf "\\e[91mBenchmark exited with an error! See %s_tmp.log for further details.\\e[0m\\n\\n" "${MODE}"
+        exit 1
+    fi
+
+    local results
+    read -r -a results <<< $(cat "${MODE}_tmp.log" | tail -n 2 | head -n 1)
+
+    if [ "${MODE}" = "server" ]; then
+        mkdir -p "${outpath}/${benchmark}_${transport}_send_pkts_throughput/"
+        mkdir -p "${outpath}/${benchmark}_${transport}_send_throughput/"
+
+        echo -e "${results[3]}" >> "${outpath}/${benchmark}_${transport}_send_pkts_throughput/${name}.csv"
+        echo -e "${results[4]}" >> "${outpath}/${benchmark}_${transport}_send_throughput/${name}.csv"
+    else
+        printf "\\e[92mWaiting for server to become ready...\\e[0m"
+        printf "\\e[92m3...\\e[0m"
+        sleep 1s
+        printf "\\e[92m2...\\e[0m"
+        sleep 1s
+        printf "\\e[92m1...\\e[0m"
+        sleep 1s
+        printf "\\n"
+    fi
+}
+
 wait()
 {
     printf "\\e[94mWaiting 1 minute for ports to be available again...\\e[0m\\n\\n"
@@ -289,6 +341,26 @@ run_benchmark_series()
     done
 
     wait
+}
+
+run_perftest_series()
+{
+    local name="${1}"
+    local benchmark="${2}"
+    local transport="${3}"
+
+    for i in $(seq 0 20); do
+        local size=$((2**i))
+        local count=100000000
+        
+        if [ "${i}" -ge 13 ]; then
+            count=$((count/$((2**$((i-12))))))
+        fi
+        
+        perftest_benchmark "${name}" "results/1" "${benchmark}" "${transport}" "${size}" "${count}" "$((8000+i))"
+        perftest_benchmark "${name}" "results/2" "${benchmark}" "${transport}" "${size}" "${count}" "$((8020+i))"
+        perftest_benchmark "${name}" "results/3" "${benchmark}" "${transport}" "${size}" "${count}" "$((8040+i))"
+    done
 }
 
 gen_plot_file()
@@ -513,16 +585,18 @@ JVERBS_CMD="${J9_JAVA_PATH} -Djava.net.preferIPv4Stack=true -jar src/JVerbsBench
 
 rm -rf "results"
 
-run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "msg"
-run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "msg"
-run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "rdma"
-run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "rdma"
-run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
-run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
-run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
-run_benchmark_series "libvma" "${LIBVMA_CMD}" "unidirectional"
-run_benchmark_series "libvma" "${LIBVMA_CMD}" "bidirectional"
-run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "unidirectional"
-run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "bidirectional"
+run_perftest_series "ib_send_bw" "bidirectional" "msg"
+
+#run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "msg"
+#run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "msg"
+#run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "rdma"
+#run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "rdma"
+#run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
+#run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
+#run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
+#run_benchmark_series "libvma" "${LIBVMA_CMD}" "unidirectional"
+#run_benchmark_series "libvma" "${LIBVMA_CMD}" "bidirectional"
+#run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "unidirectional"
+#run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "bidirectional"
 
 assemble_results
