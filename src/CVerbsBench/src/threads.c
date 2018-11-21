@@ -12,6 +12,7 @@
 #include <IbLib/log.h>
 #include <zconf.h>
 #include "threads.h"
+#include "timer.h"
 
 /**
  * Return value of a send benchmark.
@@ -28,6 +29,14 @@ uint64_t send_return_val = 0;
  * A pointer to this variable is then returned to the main-thread.
  */
 uint64_t recv_return_val = 0;
+
+/**
+ * Return value of ping-pong benchmark (server).
+ *
+ * Holds msg_count measured times to determine average, min and max latencies as 
+ * well as percentiles (e.g. 99th).
+ */
+uint64_t *send_return_vals = NULL;
 
 void *msg_send_thread(thread_params *params) {
     connection *conn = params->conn;
@@ -255,21 +264,36 @@ void *pingpong_server_thread(thread_params *params) {
     connection *conn = params->conn;
     uint64_t msg_count = params->msg_count;
 
+    uint32_t queue_size = conn->queue_pair->size;
+    uint64_t msg_progress = 0;
     uint32_t polled = 0;
 
-    struct timespec start, end;
+    // struct timespec start, end;
+    uint64_t start;
+    uint64_t end;
+
+    // Free previously allocated memory
+    if (send_return_vals) {
+        free(send_return_vals);
+    }
+
+    // Allocate memory for recording the time of each message
+    send_return_vals = (uint64_t*) malloc(sizeof(uint64_t) * msg_count);
 
     LOG_INFO("SERVER THREAD", "Starting pingpong server thread! Sending to and receiving from client with "
                               "Lid 0x%04x and Qpn 0x%08x.", conn->remote_conn_info.lid, conn->remote_conn_info.qpn);
 
     __pin_current_thread("SERVER THREAD", 0);
 
+    // Fill receive queue to avoid HCA stalls
+    msg_recv(conn, queue_size);
+
     // Send start signal
     write(conn->remote_sockfd, "start", 6);
 
-    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-
     while(msg_count > 0) {
+        start = timer_start();
+
         // Send a single message and wait until a work completion is generated
         msg_send(conn, 1);
 
@@ -277,34 +301,34 @@ void *pingpong_server_thread(thread_params *params) {
             polled = poll_completions(conn->send_comp_queue);
         } while(polled == 0);
 
-        // Receive a single message and wait until a work completion is generated
-        msg_recv(conn, 1);
-
         do {
             polled = poll_completions(conn->recv_comp_queue);
         } while(polled == 0);
 
+        // Add the used WR for recv back at the end of the cycle
+        msg_recv(conn, 1);
+
+        end = timer_end_strong();
+
+        // Store recorded time for later
+        send_return_vals[msg_progress++] = timer_calc_delta_ns(start, end);
+
         msg_count--;
     }
-
-    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-
-    // Calculate the result
-    send_return_val = (uint64_t) (end.tv_sec * 1000000000 + end.tv_nsec -
-                                  start.tv_sec * 1000000000 + start.tv_nsec);
 
     LOG_INFO("SERVER THREAD", "Finished pingpong test with client with Lid 0x%04x and Qpn 0x%08x!",
              conn->remote_conn_info.lid, conn->remote_conn_info.qpn)
 
     LOG_INFO("SERVER THREAD", "Terminating thread...");
 
-    return &send_return_val;
+    return &send_return_vals;
 }
 
 void *pingpong_client_thread(thread_params *params) {
     connection *conn = params->conn;
     uint64_t msg_count = params->msg_count;
 
+    uint32_t queue_size = conn->queue_pair->size;
     uint32_t polled = 0;
 
     struct timespec start, end;
@@ -314,24 +338,25 @@ void *pingpong_client_thread(thread_params *params) {
 
     __pin_current_thread("CLIENT THREAD", 0);
 
+    // Fill receive queue to avoid HCA stalls
+    msg_recv(conn, queue_size);
+
     // Wait for start signal
     char buf[6];
     do {
         read(conn->remote_sockfd, buf, 6);
     } while(strcmp(buf, "start") != 0);
 
-    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-
     while(msg_count > 0) {
-        // Receive a single message and wait until a work completion is generated
-        msg_recv(conn, 1);
-
         do {
             polled = poll_completions(conn->recv_comp_queue);
         } while(polled == 0);
 
         // Send a single message and wait until a work completion is generated
         msg_send(conn, 1);
+
+        // Add the used WR for recv back after posting new send WR
+        msg_recv(conn, 1);
 
         do {
             polled = poll_completions(conn->send_comp_queue);
@@ -340,18 +365,12 @@ void *pingpong_client_thread(thread_params *params) {
         msg_count--;
     }
 
-    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-
-    // Calculate the result
-    send_return_val = (uint64_t) (end.tv_sec * 1000000000 + end.tv_nsec -
-                                  start.tv_sec * 1000000000 + start.tv_nsec);
-
     LOG_INFO("CLIENT THREAD", "Finished pingpong test with server with Lid 0x%04x and Qpn 0x%08x!",
              conn->remote_conn_info.lid, conn->remote_conn_info.qpn)
 
     LOG_INFO("CLIENT THREAD", "Terminating thread...");
 
-    return &recv_return_val;
+    return NULL;
 }
 
 void __pin_current_thread(const char *log_name, uint8_t cpu) {
