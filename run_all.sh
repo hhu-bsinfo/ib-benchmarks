@@ -331,6 +331,11 @@ run_benchmark_series()
     for i in $(seq 0 20); do
         local size=$((2**i))
         local count=100000000
+
+        # Reduce message count to avoid unncessary long running benchmarks
+        if [ "$benchmark" = "pingpong" ]; then
+            count=10000000
+        fi
         
         if [ "${i}" -ge 13 ]; then
             count=$((count/$((2**$((i-12))))))
@@ -588,16 +593,21 @@ rm -rf "results"
 
 run_perftest_series "ib_send_bw" "bidirectional" "msg"
 
-#run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "msg"
-#run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "msg"
-#run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "rdma"
-#run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "rdma"
-#run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
-#run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
-#run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
-#run_benchmark_series "libvma" "${LIBVMA_CMD}" "unidirectional"
-#run_benchmark_series "libvma" "${LIBVMA_CMD}" "bidirectional"
-#run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "unidirectional"
-#run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "bidirectional"
+run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "msg"
+run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "msg"
+run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "rdma"
+run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "rdma"
+run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "pingpong" "msg"
+
+run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
+run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
+
+run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
+
+run_benchmark_series "libvma" "${LIBVMA_CMD}" "unidirectional"
+run_benchmark_series "libvma" "${LIBVMA_CMD}" "bidirectional"
+
+run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "unidirectional"
+run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "bidirectional"
 
 assemble_results
