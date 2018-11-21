@@ -191,8 +191,9 @@ benchmark()
     
     printf "\\e[92mRunning '%s ${params[*]}'...\\e[0m\\n" "${cmd}"
 
-    local output;
-    output=$(eval "${cmd} ${params[*]}")
+    eval "${cmd} ${params[*]}" > ./${MODE}_tmp.log 2>&1 
+  
+    local output="$(cat ./${MODE}_tmp.log)"
 
     if [[ $output = *"ERROR"* ]]; then
         printf "%s\\n" "${output}"
