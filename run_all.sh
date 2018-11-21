@@ -105,9 +105,9 @@ check_config()
 
     printf "\\e[92mChecking configuration...\\e[0m\\n\\n"
     
-    java_version=$("${JAVA_PATH}" -version 2>&1 | sed -n ';s/.* version "\(.*\)\.\(.*\)\..*"/\1\2/p;')
-    j9_java_valid=$("${J9_JAVA_PATH}" -version 2>&1 | grep "IBM J9 VM");
-    j9_java_version=$("${J9_JAVA_PATH}" -version 2>&1 | sed -n ';s/.* version "\(.*\)\.\(.*\)\..*"/\1\2/p;')
+    java_version=$("${JAVA_PATH}/bin/java" -version 2>&1 | sed -n ';s/.* version "\(.*\)\.\(.*\)\..*"/\1\2/p;')
+    j9_java_valid=$("${J9_JAVA_PATH}/bin/java" -version 2>&1 | grep "IBM J9 VM");
+    j9_java_version=$("${J9_JAVA_PATH}/bin/java" -version 2>&1 | sed -n ';s/.* version "\(.*\)\.\(.*\)\..*"/\1\2/p;')
     libvma_soname=$(readelf -d "${LIBVMA_PATH}" | grep SONAME | sed -e 's/.*\[//' -e 's/\]//')
     libvma_version=$(echo "${libvma_soname}" | sed -e 's/libvma.so.//')
 
