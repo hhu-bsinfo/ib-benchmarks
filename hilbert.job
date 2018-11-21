@@ -7,16 +7,16 @@
 #PBS -A DXRAM
 #PBS -q bsinfo
 
-readonly BENCHMARK_PATH="${HOME}/Projekte/jib-benchmarks/"
-readonly JAVA_PATH="/software/java/1.8.0_151/"
-readonly J9_JAVA_PATH="${HOME}/ibm-java-x86_64-80/"
-readonly LIBVMA_PATH="${HOME}/libvma.so.8.7.5"
+readonly SCRIPT_DIR="$( cd "$(dirname "${BASH_SOURCE[0]}")" && pwd )"
 
 module load gcc/8.1.0
 module load cmake/3.11.2
 module load Java/1.8.0_151
 
-cd "${BENCHMARK_PATH}" || exit 1
+cd "${SCRIPT_DIR}" || exit 1
+
+# Import config
+source ./settings.conf
 
 ./build_all.sh -m build -i "${J9_JAVA_PATH}" -j "${JAVA_PATH}"
 
