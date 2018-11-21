@@ -20,7 +20,9 @@
 #include "IbLib/ib_shared_recv_queue.h"
 #include "IbLib/ib_queue_pair.h"
 #include "IbLib/connection.h"
+#include "stats.h"
 #include "threads.h"
+#include "timer.h"
 
 void parse_args(int argc, char **argv);
 void print_usage();
@@ -92,6 +94,11 @@ uint64_t *send_time_in_nanos = NULL;
 uint64_t *recv_time_in_nanos = NULL;
 
 /**
+ * Array of recorded times of the ping-pong benchmark (server only), in nanoseconds.
+ */
+uint64_t **send_times_in_nanos = NULL;
+
+/**
  * Querys performance counters by using the ibmad-library.
  */
 ib_perf_counter perf_counter;
@@ -127,6 +134,8 @@ int main(int argc, char **argv) {
         print_usage();
         LOG_ERROR_AND_EXIT("MAIN", "Missing required parameters!")
     }
+
+    timer_init();
 
     // Initialize infiniband resources
     init_device(&device);
@@ -195,7 +204,7 @@ int main(int argc, char **argv) {
             pthread_create(&send_thread, NULL, (void *(*)(void *)) &pingpong_client_thread, &params);
         }
 
-        pthread_join(send_thread, (void **) &send_time_in_nanos);
+        pthread_join(send_thread, (void **) &send_times_in_nanos);
     } else {
         LOG_ERROR_AND_EXIT("MAIN", "Invalid benchmark '%s'!", benchmark);
     }
@@ -288,7 +297,7 @@ void print_usage() {
            "    Set the benchmark to be executed. Available benchmarks are: "
            "'unidirectional', 'bidirectional' and 'pingpong' (Default: 'unidirectional').\n"
            "-t, --transport\n"
-           "    Set the transport type. Available types are 'msg' and 'rdma' (Default: 'msg').\n"
+           "    Set the transport type. Available types are 'msg' and 'send_times_in_nanosrdma' (Default: 'msg').\n"
            "-s, --size\n"
            "    Set the message size in bytes (Default: 1024).\n"
            "-c, --count\n"
@@ -315,16 +324,44 @@ void print_usage() {
  */
 void print_results() {
     if(!strcmp(benchmark, "pingpong")) {
-        uint64_t total_time = *send_time_in_nanos;
-        uint64_t avg_latency = total_time / count;
+        long double total_time_sec = stats_times_get_total(*send_times_in_nanos, count)/ ((long double) 1000000000);
 
-        if(verbosity > 0) {
-            printf("Results:\n");
-            printf("  Total time: %.2Lf s\n", total_time / ((long double) 1000000000));
-            printf("  Average request response latency: %.2Lf us\n", avg_latency / (long double) 1000);
+        if(!strcmp(mode, "server")) {
+            // First, sort results to allow determining percentiles
+            stats_times_sort_asc(*send_times_in_nanos, count);
+
+            long double avg = stats_time_get_avg_us(*send_times_in_nanos, count);
+            long double min = stats_time_get_min_us(*send_times_in_nanos, count);
+            long double max = stats_time_get_max_us(*send_times_in_nanos, count);
+            long double p95 = stats_times_get_percentiles_us(*send_times_in_nanos, count, 0.95);
+            long double p99 = stats_times_get_percentiles_us(*send_times_in_nanos, count, 0.99);
+            long double p999 = stats_times_get_percentiles_us(*send_times_in_nanos, count, 0.999);
+            long double p9999 = stats_times_get_percentiles_us(*send_times_in_nanos, count, 0.9999);
+
+            if(verbosity > 0) {
+                printf("Results:\n");
+                printf("  Total time: %.2Lf s\n", total_time_sec);
+                printf("  Average request response latency: %.2Lf us\n", avg);
+                printf("  Min request response latency: %.2Lf us\n", min);
+                printf("  Max request response latency: %.2Lf us\n", max);
+                printf("  95th percentiles request response latency: %.2Lf us\n", p95);
+                printf("  99th percentiles request response latency: %.2Lf us\n", p99);
+                printf("  99.9th percentiles request response latency: %.2Lf us\n", p999);
+                printf("  99.99th percentiles request response latency: %.2Lf us\n", p9999);
+            } else {
+                printf("%Lf\n", total_time_sec);
+                printf("%Lf\n", avg);
+                printf("%Lf\n", min);
+                printf("%Lf\n", max);
+                printf("%Lf\n", p95);
+                printf("%Lf\n", p99);
+                printf("%Lf\n", p999);
+                printf("%Lf\n", p9999);
+            }
         } else {
-            printf("%Lf\n", total_time / ((long double) 1000000000));
-            printf("%Lf\n", avg_latency / (long double) 1000);
+            if(verbosity > 0) {
+                printf("Results: See server log\n");
+            }
         }
     } else {
         bool show_perf_counters = !strcmp(perf_counter_mode, "mad") || !strcmp(perf_counter_mode, "compat");
