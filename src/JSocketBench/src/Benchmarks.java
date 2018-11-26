@@ -19,6 +19,11 @@ public class Benchmarks {
     private long recvTime = 0;
 
     /**
+     * Statistics measured
+     */
+    private Stats stats = null;
+
+    /**
      * Start the send benchmark.
      *
      * The measured time in nanoseconds is stored in sendTime.
@@ -84,12 +89,18 @@ public class Benchmarks {
 
         Log.INFO("SERVER THREAD", "Starting pingpong thread! Doing %d iterations.", messageCount);
 
+        stats = new Stats((int) messageCount);
+
         try {
             startTime = System.nanoTime();
 
             for (int i = 0; i < messageCount; i++) {
+                stats.start();
+
                 connection.sendMessages(1);
                 connection.recvMessages(1);
+            
+                stats.stop();
             }
 
             endTime = System.nanoTime();
@@ -148,5 +159,12 @@ public class Benchmarks {
      */
     long getRecvTime() {
         return recvTime;
+    }
+
+    /**
+     * Get the statistics measured
+     */
+    Stats getStatistics() {
+        return stats;        
     }
 }
