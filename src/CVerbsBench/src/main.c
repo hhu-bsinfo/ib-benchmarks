@@ -407,8 +407,6 @@ void print_results() {
         long double recv_avg_throughput_mb = recv_total_time == 0 ? 0 :total_data /
                 (recv_total_time / ((long double) 1000000000)) / ((long double) 1000) / ((long double) 1000);
 
-        long double send_avg_latency = send_total_time / (long double) count / (long double) 1000;
-
         // Even if we only send data, a few bytes will also be received, because of the RC-protocol,
         // so if recv_total_time is 0, we just set it to send_total_time,
         // so that the raw receive throughput can be calculated correctly.
@@ -458,7 +456,6 @@ void print_results() {
                    recv_avg_throughput_mib, recv_avg_throughput_mb);
             printf("  Average combined throughput: %.2Lf MiB/s (%.2Lf MB/s)\n",
                    send_avg_throughput_mib + recv_avg_throughput_mib, send_avg_throughput_mb + recv_avg_throughput_mb);
-            printf("  Average send latency: %.2Lf us\n", send_avg_latency);
 
             if(show_perf_counters) {
                 printf("\nRaw statistics:\n");
@@ -495,7 +492,6 @@ void print_results() {
             printf("%Lf\n", send_avg_throughput_mb);
             printf("%Lf\n", recv_avg_throughput_mb);
             printf("%Lf\n", send_avg_throughput_mb + recv_avg_throughput_mb);
-            printf("%Lf\n", send_avg_latency);
 
             if(show_perf_counters) {
                 printf("%ld\n", xmit_pkts);

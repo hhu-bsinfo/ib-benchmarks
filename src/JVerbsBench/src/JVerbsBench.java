@@ -378,66 +378,83 @@ public class JVerbsBench {
      * Print the benchmark results.
      */
     private void printResults() {
-        long sendTime = benchmarks.getSendTime();
-        long recvTime = benchmarks.getRecvTime();
+        double sendTimeSec = (double) benchmarks.getSendTime() / 1000000000.0;
+        double recvTimeSec = (double)  benchmarks.getRecvTime() / 1000000000.0;
+        Stats stats = benchmarks.getStatistics();
+
+        double sendPktsRate = (messageCount / sendTimeSec / ((double) 1000000));
+        double recvPktsRate = recvTimeSec == 0 ? 0 : (messageCount / recvTimeSec / ((double) 1000000));
 
         if(benchmark == BENCHMARK.PINGPONG) {
-            long avgLatency = sendTime / messageCount;
+            // First, sort results to allow determining percentiles
+            stats.sortAscending();
+
+            double avg = stats.getAvgUs();
+            double min = stats.getMinUs();
+            double max = stats.getMaxUs();
+            double p95 = stats.getPercentilesUs(0.95f);
+            double p99 = stats.getPercentilesUs(0.99f);
+            double p999 = stats.getPercentilesUs(0.999f);
+            double p9999 = stats.getPercentilesUs(0.9999f);
 
             if(Log.VERBOSITY > 0) {
-                System.out.print("Results:\n");
-                System.out.printf("  Total time: %.2f s\n", sendTime / ((double) 1000000000));
-                System.out.printf("  Average request response latency: %.2f us\n", avgLatency /
-                        (double) 1000);
+                System.out.printf("Results:\n");
+                System.out.printf("  Total time: %.2f s\n", sendTimeSec);
+                System.out.printf("  Average request response latency: %.2f us\n", avg);
+                System.out.printf("  Min request response latency: %.2f us\n", min);
+                System.out.printf("  Max request response latency: %.2f us\n", max);
+                System.out.printf("  95th percentiles request response latency: %.2f us\n", p95);
+                System.out.printf("  99th percentiles request response latency: %.2f us\n", p99);
+                System.out.printf("  99.9th percentiles request response latency: %.2f us\n", p999);
+                System.out.printf("  99.99th percentiles request response latency: %.2f us\n", p9999);
+                System.out.printf("  Average sent packets per second: %.2f mPkts/s\n", sendPktsRate);
             } else {
-                System.out.printf("%f\n", sendTime / ((double) 1000000000));
-                System.out.printf("%f\n", avgLatency / (double) 1000);
+                System.out.printf("%f\n", sendTimeSec);
+                System.out.printf("%f\n", avg);
+                System.out.printf("%f\n", min);
+                System.out.printf("%f\n", max);
+                System.out.printf("%f\n", p95);
+                System.out.printf("%f\n", p99);
+                System.out.printf("%f\n", p999);
+                System.out.printf("%f\n", p9999);
+                System.out.printf("%f\n", sendPktsRate);
             }
         } else {
             long totalData = messageCount * bufSize;
 
-            double sendPktsRate = (messageCount / (sendTime / ((double) 1000000000)) / ((double) 1000));
+            double sendAvgThroughputMib = totalData / sendTimeSec / ((double) 1024) / ((double) 1024);
 
-            double recvPktsRate = recvTime == 0 ? 0 : (messageCount / (recvTime / ((double) 1000000000)) /
-                    ((double) 1000));
+            double sendAvgThroughputMb = totalData / sendTimeSec / ((double) 1000) / ((double) 1000);
 
-            double sendAvgThroughputMib = totalData /
-                    (sendTime / ((double) 1000000000)) / ((double) 1024) / ((double) 1024);
+            double recvAvgThroughputMib = recvTimeSec == 0 ? 0 : totalData /
+                    recvTimeSec / ((double) 1024) / ((double) 1024);
 
-            double sendAvgThroughputMb = totalData /
-                    (sendTime / ((double) 1000000000)) / ((double) 1000) / ((double) 1000);
-
-            double recvAvgThroughputMib = recvTime == 0 ? 0 : totalData /
-                    (recvTime / ((double) 1000000000)) / ((double) 1024) / ((double) 1024);
-
-            double recvAvgThroughputMb = recvTime == 0 ? 0 : totalData /
-                    (recvTime / ((double) 1000000000)) / ((double) 1000) / ((double) 1000);
-
-            double sendAvgLatency = sendTime / (double) messageCount / (double) 1000;
+            double recvAvgThroughputMb = recvTimeSec == 0 ? 0 : totalData /
+                    recvTimeSec / ((double) 1000) / ((double) 1000);
 
             // Even if we only send data, a few bytes will also be received, because of the RC-protocol,
             // so if recvTime is 0, we just set it to sendTime,
             // so that the raw receive throughput can be calculated correctly.
-            if (recvTime == 0) {
-                recvTime = sendTime;
-            } else if (sendTime == 0) {
-                recvTime = 0;
+            if (recvTimeSec == 0) {
+                recvTimeSec = sendTimeSec;
+            } else if (sendTimeSec == 0) {
+                recvTimeSec = 0;
             }
 
             double sendAvgRawThroughputMib = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
-                    perfCounter.getXmitDataBytes() / (sendTime / ((double) 1000000000)) /
+                    perfCounter.getXmitDataBytes() / sendTimeSec /
                             ((double) 1024) / ((double) 1024);
 
             double sendAvgRawThroughputMb = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
-                    perfCounter.getXmitDataBytes() / (sendTime / ((double) 1000000000)) /
+                    perfCounter.getXmitDataBytes() / sendTimeSec /
                             ((double) 1000) / ((double) 1000);
 
             double recvAvgRawThroughputMib = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
-                    perfCounter.getRcvDataBytes() /(recvTime / ((double) 1000000000)) /
+                    perfCounter.getRcvDataBytes() / recvTimeSec /
                             ((double) 1024) / ((double) 1024);
 
             double recvAvgRawThroughputMb = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
-                    perfCounter.getRcvDataBytes() / (recvTime / ((double) 1000000000)) /
+                    perfCounter.getRcvDataBytes() / recvTimeSec /
                             ((double) 1000) / ((double) 1000);
 
             double sendOverhead = 0;
@@ -456,15 +473,15 @@ public class JVerbsBench {
 
             if (Log.VERBOSITY > 0) {
                 System.out.print("Results:\n");
-                System.out.printf("  Total time: %.2f s\n", sendTime / ((double) 1000000000));
+                System.out.printf("  Total time: %.2f s\n", sendTimeSec);
                 System.out.printf("  Total data: %.2f MiB (%.2f MB)\n",
                         totalData / ((double) 1024) / ((double) 1024),
                         totalData / ((double) 1000) / ((double) 1000));
-                System.out.printf("  Average sent packet per second:     %.2f kPkts/s\n",
+                System.out.printf("  Average sent packet per second:     %.2f mPkts/s\n",
                         sendPktsRate);
-                System.out.printf("  Average recv packet per second:     %.2f kPkts/s\n",
+                System.out.printf("  Average recv packet per second:     %.2f mPkts/s\n",
                         recvPktsRate);
-                System.out.printf("  Average combined packet per second: %.2f kPkts/s\n",
+                System.out.printf("  Average combined packet per second: %.2f mPkts/s\n",
                         sendPktsRate + recvPktsRate);
                 System.out.printf("  Average send throughput:     %.2f MiB/s (%.2f MB/s)\n",
                         sendAvgThroughputMib, sendAvgThroughputMb);
@@ -472,7 +489,6 @@ public class JVerbsBench {
                         recvAvgThroughputMib, recvAvgThroughputMb);
                 System.out.printf("  Average combined throughput: %.2f MiB/s (%.2f MB/s)\n",
                         sendAvgThroughputMib + recvAvgThroughputMib, sendAvgThroughputMb + recvAvgThroughputMb);
-                System.out.printf("  Average send latency: %.2f us\n", sendAvgLatency);
 
                 if(perfCounterMode != PERF_COUNTER_MODE.OFF) {
                     System.out.print("\nRaw statistics:\n");
@@ -505,7 +521,7 @@ public class JVerbsBench {
                             sendAvgRawThroughputMb + recvAvgRawThroughputMb);
                 }
             } else {
-                System.out.printf("%f\n", sendTime / ((double) 1000000000));
+                System.out.printf("%f\n", sendTimeSec);
                 System.out.printf("%f\n", totalData / ((double) 1024) / ((double) 1024));
                 System.out.printf("%f\n", sendPktsRate);
                 System.out.printf("%f\n", recvPktsRate);
@@ -513,7 +529,6 @@ public class JVerbsBench {
                 System.out.printf("%f\n", sendAvgThroughputMb);
                 System.out.printf("%f\n", recvAvgThroughputMb);
                 System.out.printf("%f\n", sendAvgThroughputMb + recvAvgThroughputMb);
-                System.out.printf("%f\n", sendAvgLatency);
 
                 if(perfCounterMode != PERF_COUNTER_MODE.OFF) {
                     System.out.printf("%d\n", perfCounter.getXmitPkts());

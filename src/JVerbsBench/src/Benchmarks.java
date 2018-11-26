@@ -21,6 +21,11 @@ class Benchmarks {
     private long recvTime = 0;
 
     /**
+     * Statistics measured
+     */
+    private Stats stats = null;
+
+    /**
      * Start the send benchmark.
      *
      * The measured time in nanoseconds is stored in sendTime.
@@ -317,10 +322,17 @@ class Benchmarks {
 
         Log.INFO("SERVER THREAD", "Starting pingpong server thread!");
 
+        stats = new Stats((int) msgCount);
+
         try {
+            // Fill receive queue to avoid HCA stalls
+            connection.recvMessages(connection.getQueueSize());
+
             startTime = System.nanoTime();
 
             while(msgCount > 0) {
+                stats.start();
+
                 // Send a single message and wait until a work completion is generated
                 connection.sendMessages(1);
 
@@ -328,12 +340,14 @@ class Benchmarks {
                     polled = connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
                 } while(polled == 0);
 
-                // Receive a single message and wait until a work completion is generated
-                connection.recvMessages(1);
-
                 do {
                     polled = connection.pollCompletionQueue(JVerbsWrapper.CqType.RECV_CQ);
                 } while(polled == 0);
+
+                // Add the used WR for recv back at the end of the cycle
+                connection.recvMessages(1);
+
+                stats.stop();
 
                 msgCount--;
             }
@@ -368,18 +382,21 @@ class Benchmarks {
         Log.INFO("CLIENT THREAD", "Starting pingpong client thread!");
 
         try {
+            // Fill receive queue to avoid HCA stalls
+            connection.recvMessages(connection.getQueueSize());
+
             startTime = System.nanoTime();
 
             while(msgCount > 0) {
-                // Receive a single message and wait until a work completion is generated
-                connection.recvMessages(1);
-
                 do {
                     polled = connection.pollCompletionQueue(JVerbsWrapper.CqType.RECV_CQ);
                 } while(polled == 0);
 
                 // Send a single message and wait until a work completion is generated
                 connection.sendMessages(1);
+
+                // Add the used WR for recv back after posting new send WR
+                connection.recvMessages(1);
 
                 do {
                     polled = connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
@@ -413,6 +430,13 @@ class Benchmarks {
      */
     long getRecvTime() {
         return recvTime;
+    }
+
+    /**
+     * Get the statistics measured
+     */
+    Stats getStatistics() {
+        return stats;        
     }
 }
 
