@@ -325,6 +325,7 @@ void print_usage() {
 void print_results() {
     if(!strcmp(benchmark, "pingpong")) {
         long double total_time_sec = stats_times_get_total(*send_times_in_nanos, count)/ ((long double) 1000000000);
+        long double send_pkts_rate = (count / (total_time_sec / ((long double) 1000000000)) / ((long double) 1000000));
 
         if(!strcmp(mode, "server")) {
             // First, sort results to allow determining percentiles
@@ -348,6 +349,7 @@ void print_results() {
                 printf("  99th percentiles request response latency: %.2Lf us\n", p99);
                 printf("  99.9th percentiles request response latency: %.2Lf us\n", p999);
                 printf("  99.99th percentiles request response latency: %.2Lf us\n", p9999);
+                printf("  Average sent packets per second: %.2Lf mPkts/s\n", send_pkts_rate);
             } else {
                 printf("%Lf\n", total_time_sec);
                 printf("%Lf\n", avg);
@@ -357,6 +359,7 @@ void print_results() {
                 printf("%Lf\n", p99);
                 printf("%Lf\n", p999);
                 printf("%Lf\n", p9999);
+                printf("%Lf\n", send_pkts_rate);
             }
         } else {
             if(verbosity > 0) {
@@ -387,10 +390,10 @@ void print_results() {
             rcv_data_bytes = perf_counter_compat.rcv_data_bytes;
         }
 
-        long double send_pkts_rate = (count / (send_total_time / ((long double) 1000000000)) / ((long double) 1000));
+        long double send_pkts_rate = (count / (send_total_time / ((long double) 1000000000)) / ((long double) 1000000));
 
         long double recv_pkts_rate = recv_total_time == 0 ? 0 : (count / (recv_total_time / ((long double) 1000000000))
-                / ((long double) 1000));
+                / ((long double) 1000000));
 
         long double send_avg_throughput_mib = total_data /
                 (send_total_time / ((long double) 1000000000)) / ((long double) 1024) / ((long double) 1024);
@@ -446,9 +449,9 @@ void print_results() {
             printf("  Total time: %.2Lf s\n", send_total_time / ((long double) 1000000000));
             printf("  Total data: %.2Lf MiB (%.2Lf MB)\n", total_data / ((long double) 1024) / ((long double) 1024),
                    total_data / ((long double) 1000) / ((long double) 1000));
-            printf("  Average sent packets per second:     %.2Lf kPkts/s\n", send_pkts_rate);
-            printf("  Average recv packets per second:     %.2Lf kPkts/s\n", recv_pkts_rate);
-            printf("  Average combined packets per second: %.2Lf kPkts/s\n", send_pkts_rate + recv_pkts_rate);
+            printf("  Average sent packets per second:     %.2Lf mPkts/s\n", send_pkts_rate);
+            printf("  Average recv packets per second:     %.2Lf mPkts/s\n", recv_pkts_rate);
+            printf("  Average combined packets per second: %.2Lf mPkts/s\n", send_pkts_rate + recv_pkts_rate);
             printf("  Average send throughput:     %.2Lf MiB/s (%.2Lf MB/s)\n",
                    send_avg_throughput_mib, send_avg_throughput_mb);
             printf("  Average recv throughput:     %.2Lf MiB/s (%.2Lf MB/s)\n",
