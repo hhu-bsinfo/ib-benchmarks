@@ -225,29 +225,29 @@ benchmark()
         lat_9999=$(echo "${output}" | sed '8q;d')
         pkts_tp=$(echo "${output}" | sed '9q;d')
 
-        echo -e "${avg_lat}" >> "${outpath}/${benchmark}_${transport}_lat_avg/${name}.csv"
-        echo -e "${min_lat}" >> "${outpath}/${benchmark}_${transport}_lat_min/${name}.csv"
-        echo -e "${max_lat}" >> "${outpath}/${benchmark}_${transport}_lat_max/${name}.csv"
-        echo -e "${lat_95}" >> "${outpath}/${benchmark}_${transport}_lat_95/${name}.csv"
-        echo -e "${lat_99}" >> "${outpath}/${benchmark}_${transport}_lat_99/${name}.csv"
-        echo -e "${lat_999}" >> "${outpath}/${benchmark}_${transport}_lat_999/${name}.csv"
-        echo -e "${lat_9999}" >> "${outpath}/${benchmark}_${transport}_lat_9999/${name}.csv"
-        echo -e "${pkts_tp}" >> "${outpath}/${benchmark}_${transport}_tp_pkt_send/${name}.csv"
+        echo -e "${avg_lat}" >> "${outpath}/${benchmark}_lat_avg/${name}(${transport}).csv"
+        echo -e "${min_lat}" >> "${outpath}/${benchmark}_lat_min/${name}(${transport}).csv"
+        echo -e "${max_lat}" >> "${outpath}/${benchmark}_lat_max/${name}(${transport}).csv"
+        echo -e "${lat_95}" >> "${outpath}/${benchmark}_lat_95/${name}(${transport}).csv"
+        echo -e "${lat_99}" >> "${outpath}/${benchmark}_lat_99/${name}(${transport}).csv"
+        echo -e "${lat_999}" >> "${outpath}/${benchmark}_lat_999/${name}(${transport}).csv"
+        echo -e "${lat_9999}" >> "${outpath}/${benchmark}_lat_9999/${name}(${transport}).csv"
+        echo -e "${pkts_tp}" >> "${outpath}/${benchmark}_tp_pkt_send/${name}(${transport}).csv"
     # Throughput on all other benchmarks
     elif [ "${MODE}" = "server" ]; then
-        mkdir -p "${outpath}/${benchmark}_${transport}_tp_pkt_send/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_tp_pkt_recv/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_tp_pkt_combined/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_tp_data_send/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_tp_data_recv/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_tp_data_combined/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_overhead_send/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_overhead_recv/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_overhead_perc_send/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_overhead_perc_recv/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_tp_raw_send/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_tp_raw_recv/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_tp_raw_combined/"
+        mkdir -p "${outpath}/${benchmark}_tp_pkt_send/"
+        mkdir -p "${outpath}/${benchmark}_tp_pkt_recv/"
+        mkdir -p "${outpath}/${benchmark}_tp_pkt_combined/"
+        mkdir -p "${outpath}/${benchmark}_tp_data_send/"
+        mkdir -p "${outpath}/${benchmark}_tp_data_recv/"
+        mkdir -p "${outpath}/${benchmark}_tp_data_combined/"
+        mkdir -p "${outpath}/${benchmark}_overhead_send/"
+        mkdir -p "${outpath}/${benchmark}_overhead_recv/"
+        mkdir -p "${outpath}/${benchmark}_overhead_perc_send/"
+        mkdir -p "${outpath}/${benchmark}_overhead_perc_recv/"
+        mkdir -p "${outpath}/${benchmark}_tp_raw_send/"
+        mkdir -p "${outpath}/${benchmark}_tp_raw_recv/"
+        mkdir -p "${outpath}/${benchmark}_tp_raw_combined/"
         
         local send_pkts_tp recv_pkts_tp combined_pkts_tp send_tp recv_tp combined_tp send_lat send_overhead;
         local send_overhead_perc recv_overhead recv_overhead_perc send_raw_tp recv_raw_tp combined_raw_tp;
@@ -266,19 +266,19 @@ benchmark()
         recv_raw_tp=$(echo "${output}" | sed '19q;d')
         combined_raw_tp=$(echo "${output}" | sed '20q;d')
 
-        echo -e "${send_pkts_tp}" >> "${outpath}/${benchmark}_${transport}_tp_pkt_send/${name}.csv"
-        echo -e "${recv_pkts_tp}" >> "${outpath}/${benchmark}_${transport}_tp_pkt_recv/${name}.csv"
-        echo -e "${combined_pkts_tp}" >> "${outpath}/${benchmark}_${transport}_tp_pkt_combined/${name}.csv"
-        echo -e "${send_tp}" >> "${outpath}/${benchmark}_${transport}_tp_data_send/${name}.csv"
-        echo -e "${recv_tp}" >> "${outpath}/${benchmark}_${transport}_tp_data_recv/${name}.csv"
-        echo -e "${combined_tp}" >> "${outpath}/${benchmark}_${transport}_tp_data_combined/${name}.csv"
-        echo -e "${send_overhead}" >> "${outpath}/${benchmark}_${transport}_overhead_send/${name}.csv"
-        echo -e "${recv_overhead}" >> "${outpath}/${benchmark}_${transport}_overhead_recv/${name}.csv"
-        echo -e "${send_overhead_perc}" >> "${outpath}/${benchmark}_${transport}_overhead_perc_send/${name}.csv"
-        echo -e "${recv_overhead_perc}" >> "${outpath}/${benchmark}_${transport}_overhead_perc_recv/${name}.csv"
-        echo -e "${send_raw_tp}" >> "${outpath}/${benchmark}_${transport}_tp_raw_send/${name}.csv"
-        echo -e "${recv_raw_tp}" >> "${outpath}/${benchmark}_${transport}_tp_raw_recv/${name}.csv"
-        echo -e "${combined_raw_tp}" >> "${outpath}/${benchmark}_${transport}_tp_raw_combined/${name}.csv"
+        echo -e "${send_pkts_tp}" >> "${outpath}/${benchmark}_tp_pkt_send/${name}(${transport}).csv"
+        echo -e "${recv_pkts_tp}" >> "${outpath}/${benchmark}_tp_pkt_recv/${name}(${transport}).csv"
+        echo -e "${combined_pkts_tp}" >> "${outpath}/${benchmark}_tp_pkt_combined/${name}(${transport}).csv"
+        echo -e "${send_tp}" >> "${outpath}/${benchmark}_tp_data_send/${name}(${transport}).csv"
+        echo -e "${recv_tp}" >> "${outpath}/${benchmark}_tp_data_recv/${name}(${transport}).csv"
+        echo -e "${combined_tp}" >> "${outpath}/${benchmark}_tp_data_combined/${name}(${transport}).csv"
+        echo -e "${send_overhead}" >> "${outpath}/${benchmark}_overhead_send/${name}(${transport}).csv"
+        echo -e "${recv_overhead}" >> "${outpath}/${benchmark}_overhead_recv/${name}(${transport}).csv"
+        echo -e "${send_overhead_perc}" >> "${outpath}/${benchmark}_overhead_perc_send/${name}(${transport}).csv"
+        echo -e "${recv_overhead_perc}" >> "${outpath}/${benchmark}_overhead_perc_recv/${name}(${transport}).csv"
+        echo -e "${send_raw_tp}" >> "${outpath}/${benchmark}_tp_raw_send/${name}(${transport}).csv"
+        echo -e "${recv_raw_tp}" >> "${outpath}/${benchmark}_tp_raw_recv/${name}(${transport}).csv"
+        echo -e "${combined_raw_tp}" >> "${outpath}/${benchmark}_tp_raw_combined/${name}(${transport}).csv"
     else
         printf "\\e[92mWaiting for server to become ready... \\e[0m"
         printf "\\e[92m3...\\e[0m"
@@ -326,11 +326,11 @@ perftest_benchmark() {
     read -r -a results <<< $(cat "${MODE}_tmp.log" | tail -n 2 | head -n 1)
 
     if [ "${MODE}" = "server" ]; then
-        mkdir -p "${outpath}/${benchmark}_${transport}_tp_pkt_send/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_tp_data_send/"
+        mkdir -p "${outpath}/${benchmark}_tp_pkt_send/"
+        mkdir -p "${outpath}/${benchmark}_tp_data_send/"
 
-        echo -e "${results[3]}" >> "${outpath}/${benchmark}_${transport}_tp_pkt_send/${name}.csv"
-        echo -e "${results[4]}" >> "${outpath}/${benchmark}_${transport}_tp_data_send/${name}.csv"
+        echo -e "${results[3]}" >> "${outpath}/${benchmark}_tp_pkt_send/${name}(${transport}).csv"
+        echo -e "${results[4]}" >> "${outpath}/${benchmark}_tp_data_send/${name}(${transport}).csv"
     else
         printf "\\e[92mWaiting for server to become ready...\\e[0m"
         printf "\\e[92m3...\\e[0m"
@@ -401,20 +401,19 @@ gen_plot_file()
 {
     local plot_name="${1}"
     local benchmark="${2}"
-    local transport="${3}"
-    local values_name_y1="${4}"
-    local values_name_y2="${5}"
-    local filter_files="${6}"
-    local xlabel="${7}"
-    local y1label="${8}"
-    local y2label="${9}"
-    local logscale="${10}"
-    local colors="${*:11}"
+    local values_name_y1="${3}"
+    local values_name_y2="${4}"
+    local filter_files="${5}"
+    local xlabel="${6}"
+    local y1label="${7}"
+    local y2label="${8}"
+    local logscale="${9}"
+    local colors="${*:10}"
 
     local plot="\
-            FILES = system(\"ls -1 ../merged/${benchmark}_${transport}_${values_name_y1}/*.csv | grep -E \\\"${filter_files}\\\"\")\\n\
-            PACKET_FILES = system(\"ls -1 ../merged/${benchmark}_${transport}_${values_name_y2}/*.csv | grep -E \\\"${filter_files}\\\"\")\\n\
-            LABELS = system(\"ls -1 ../merged/${benchmark}_${transport}_${values_name_y1}/*.csv | xargs -0 -n 1 basename | cut -d'.' -f1 | grep -E \\\"${filter_files}\\\"\")\\n\
+            FILES = system(\"ls -1 ../merged/${benchmark}_${values_name_y1}/*.csv | grep -E \\\"${filter_files}\\\"\")\\n\
+            PACKET_FILES = system(\"ls -1 ../merged/${benchmark}_${values_name_y2}/*.csv | grep -E \\\"${filter_files}\\\"\")\\n\
+            LABELS = system(\"ls -1 ../merged/${benchmark}_${values_name_y1}/*.csv | xargs -0 -n 1 basename | cut -d'.' -f1 | grep -E \\\"${filter_files}\\\"\")\\n\
             COLORS = \"${colors}\"\
             \\n\
             set xlabel '${xlabel}'\\n\
@@ -425,7 +424,7 @@ gen_plot_file()
             set ytics nomirror\\n\
             set datafile separator ','\\n\
             set terminal pdf\\n\
-            set output 'output/${benchmark}_${transport}_${plot_name}.pdf'\\n"
+            set output 'output/${benchmark}_${plot_name}.pdf'\\n"
 
     if [ "${logscale}" == "true" ]; then
         plot+="set logscale y\\n"
@@ -450,7 +449,7 @@ gen_plot_file()
         mkdir -p "results/plot/scripts"
     fi
 
-    echo -e "${plot}" > "results/plot/scripts/${benchmark}_${transport}_${plot_name}.plot"
+    echo -e "${plot}" > "results/plot/scripts/${benchmark}_${plot_name}.plot"
 }
 
 values_min() 
@@ -509,19 +508,21 @@ assemble_results()
 
     generate_merged_values_benchmark_runs
 
-    gen_plot_file "verbs" "pingpong" "msg" "lat_avg" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "red" "green" "blue"
+    gen_plot_file "verbs" "unidirectional" "tp_data_send" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Throughput [MB/s]" "Messages [mmps]" "true" "red" "green" "blue"
+    gen_plot_file "verbs" "unidirectional" "verbs" "overhead_perc_send" "" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Overhead [%]" "" "true" "red" "green" "blue"
 
-    #gen_plot_file "unidirectional" "verbs" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "red" "green" "blue"
-    #gen_plot_file "unidirectional" "verbs" "overhead" "Message size [Bytes]" "Overhead [%]" "true" "red" "green" "blue"
     #gen_plot_file "unidirectional" "sockets" "latency" "Message size [Bytes]" "Latency [us]" "true" "#8B008B" "#006400" "orange" "#191970"
     #gen_plot_file "unidirectional" "sockets" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "#8B008B" "#006400" "orange" "#191970"
     #gen_plot_file "unidirectional" "sockets" "overhead" "Message size [Bytes]" "Overhead [%]" "true" "#8B008B" "#006400" "orange" "#191970"
+
     #gen_plot_file "unidirectional" "mixed" "latency" "Message size [Bytes]" "Latency [us]" "true" "red" "orange" "true" "blue" "#191970"
     #gen_plot_file "unidirectional" "mixed" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "red" "orange" "blue" "#191970"
 
     #gen_plot_file "bidirectional" "verbs" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "red" "green" "blue"
     #gen_plot_file "bidirectional" "sockets" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "#8B008B" "#006400" "orange" "#191970"
     #gen_plot_file "bidirectional" "mixed" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "red" "orange" "blue" "#191970"
+
+    gen_plot_file "verbs" "pingpong" "lat_avg" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "red" "green" "blue"
 }
 
 plot_all()
@@ -544,8 +545,8 @@ plot_all()
 printf "\\e[94mRunning automatic benchmark script!\\e[0m\\n"
 printf "\\e[94mversion: %s(%s) - git %s, date: %s!\\e[0m\\n\\n" "${GIT_VERSION}" "${GIT_BRANCH}" "${GIT_REV}" "${DATE}"
 
-#parse_args "$@"
-#check_config
+parse_args "$@"
+check_config
 
 printf "\\e[94mUsing '%s' for IPoIB and libvma!\\e[0m\\n" "${JAVA_PATH}"
 printf "\\e[94mUsing '%s' for JSOR and jVerbs!\\e[0m\\n" "${J9_JAVA_PATH}"
@@ -553,29 +554,30 @@ printf "\\e[94mUsing '%s' for libvma!\\e[0m\\n\\n" "${LIBVMA_PATH}"
 
 JSOCKET_CMD="${JAVA_PATH} -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
 LIBVMA_CMD="sudo LD_PRELOAD=${LIBVMA_PATH} ${JAVA_PATH} -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
-JSOR_CMD="IBM_JAVA_RDMA_SBUF_SIZE=1048576 IBM_JAVA_RDMA_RBUF_SIZE=1048576 ${J9_JAVA_PATH} -Dcom.ibm.net.rdma.conf=src/JSocketBench/jsor_${MODE}.conf -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
-JVERBS_CMD="${J9_JAVA_PATH} -Djava.net.preferIPv4Stack=true -jar src/JVerbsBench/build/libs/JVerbsBench.jar"
+JSOR_CMD="IBM_JAVA_RDMA_SBUF_SIZE=1048576 IBM_JAVA_RDMA_RBUF_SIZE=1048576 ${J9_JAVA_PATH}/bin/java -Dcom.ibm.net.rdma.conf=src/JSocketBench/jsor_${MODE}.conf -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
+JVERBS_CMD="${J9_JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JVerbsBench/build/libs/JVerbsBench.jar"
 
-#rm -rf "results"
+rm -rf "results"
 
-#run_perftest_series "ib_send_bw" "bidirectional" "msg"
+run_perftest_series "ib_send_bw" "bidirectional" "msg"
 
-#run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "msg"
-#run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "msg"
-#run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "rdma"
-#run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "rdma"
-#run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "pingpong" "msg"
+run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "msg"
+run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "msg"
+run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "rdma"
+run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "rdma"
 
-#run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
-#run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
+run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "pingpong" "msg"
 
-#run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
+run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
+run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
 
-#run_benchmark_series "libvma" "${LIBVMA_CMD}" "unidirectional"
-#run_benchmark_series "libvma" "${LIBVMA_CMD}" "bidirectional"
+run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
 
-#run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "unidirectional"
-#run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "bidirectional"
+run_benchmark_series "libvma" "${LIBVMA_CMD}" "unidirectional"
+run_benchmark_series "libvma" "${LIBVMA_CMD}" "bidirectional"
+
+run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "unidirectional"
+run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "bidirectional"
 
 assemble_results
 plot_all
