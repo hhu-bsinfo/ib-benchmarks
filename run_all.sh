@@ -204,7 +204,7 @@ benchmark()
     fi
 
     # Consider latency for pingpong only
-    if [ "${MODE}" = "server" ] && [ "${benchmark}" = "pingpong" ] ; then
+    if [ "${MODE}" = "server" ] && { [ "${benchmark}" = "pingpong" ] || [ "${benchmark}" = "latency" ]; } ; then
         mkdir -p "${outpath}/${benchmark}_lat_avg/"
         mkdir -p "${outpath}/${benchmark}_lat_min/"
         mkdir -p "${outpath}/${benchmark}_lat_max/"
@@ -326,20 +326,20 @@ perftest_benchmark() {
     read -r -a results <<< $(cat "${MODE}_tmp.log" | tail -n 2 | head -n 1)
 
     if [ "${MODE}" = "server" ]; then
-        if [ "${benchmark}" = "pingpong" ]; then
-            mkdir -p "${outpath}/${benchmark}_${transport}_lat_min/"
-            mkdir -p "${outpath}/${benchmark}_${transport}_lat_max/"
-            mkdir -p "${outpath}/${benchmark}_${transport}_lat_avg/"
+        if [ "${benchmark}" = "latency" ]; then
+            mkdir -p "${outpath}/${benchmark}_lat_min/"
+            mkdir -p "${outpath}/${benchmark}_lat_max/"
+            mkdir -p "${outpath}/${benchmark}_lat_avg/"
 
-            echo -e "${results[2]}" >> "${outpath}/${benchmark}_${transport}_lat_min/${name}.csv"
-            echo -e "${results[3]}" >> "${outpath}/${benchmark}_${transport}_lat_max/${name}.csv"
-            echo -e "${results[4]}" >> "${outpath}/${benchmark}_${transport}_lat_avg/${name}.csv"
+            echo -e "${results[2]}" >> "${outpath}/${benchmark}_lat_min/${name}(${transport}).csv"
+            echo -e "${results[3]}" >> "${outpath}/${benchmark}_lat_max/${name}(${transport}).csv"
+            echo -e "${results[4]}" >> "${outpath}/${benchmark}_lat_avg/${name}(${transport}).csv"
         else
-            mkdir -p "${outpath}/${benchmark}_${transport}_tp_pkt_send/"
-            mkdir -p "${outpath}/${benchmark}_${transport}_tp_data_send/"
+            mkdir -p "${outpath}/${benchmark}_tp_pkt_send/"
+            mkdir -p "${outpath}/${benchmark}_tp_data_send/"
 
-            echo -e "${results[3]}" >> "${outpath}/${benchmark}_${transport}_tp_pkt_send/${name}.csv"
-            echo -e "${results[4]}" >> "${outpath}/${benchmark}_${transport}_tp_data_send/${name}.csv"
+            echo -e "${results[3]}" >> "${outpath}/${benchmark}_tp_pkt_send/${name}(${transport}).csv"
+            echo -e "${results[4]}" >> "${outpath}/${benchmark}_tp_data_send/${name}(${transport}).csv"
         fi
     else
         printf "\\e[92mWaiting for server to become ready...\\e[0m"
@@ -371,7 +371,7 @@ run_benchmark_series()
         local count=100000000
 
         # Reduce message count to avoid unncessary long running benchmarks
-        if [ "$benchmark" = "pingpong" ]; then
+        if [ "$benchmark" = "pingpong" ] || [ "$benchmark" = "latency" ]; then
             count=10000000
         fi
         
@@ -398,7 +398,7 @@ run_perftest_series()
         local count=100000000
 
         # Reduce message count to avoid unncessary long running benchmarks
-        if [ "$benchmark" = "pingpong" ]; then
+        if [ "$benchmark" = "latency" ]; then
             count=10000000
         fi
         
@@ -578,27 +578,32 @@ run_perftest_series "ib_send_bw" "unidirectional" "msg"
 run_perftest_series "ib_send_bw" "bidirectional" "msg"
 run_perftest_series "ib_write_bw" "unidirectional" "rdma"
 run_perftest_series "ib_write_bw" "bidirectional" "rdma"
-run_perftest_series "ib_send_lat" "pingpong" "msg"
-run_perftest_series "ib_write_lat" "pingpong" "rdma"
+run_perftest_series "ib_send_lat" "latency" "msg"
+run_perftest_series "ib_write_lat" "latency" "rdma"
 
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "msg"
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "msg"
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "rdma"
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "rdma"
-
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "pingpong" "msg"
+run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "msg"
+run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "rdma"
+run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "rdmar"
 
 run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
 run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
 run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "pingpong" "msg"
 
 run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
+run_benchmark_series "JSOR" "${JSOR_CMD}" "pingpong"
 
 run_benchmark_series "libvma" "${LIBVMA_CMD}" "unidirectional"
 run_benchmark_series "libvma" "${LIBVMA_CMD}" "bidirectional"
+run_benchmark_series "libvma" "${LIBVMA_CMD}" "pingpong"
 
 run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "unidirectional"
 run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "bidirectional"
+run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "pingpong"
 
 assemble_results
 plot_all
