@@ -12,6 +12,11 @@ if [ "${1}" = "server" ]; then
     echo "Building..."
     ./build_all.sh -m build -i "${J9_JAVA_PATH}" -j "${JAVA_PATH}"
 
+    if [ "$?" -ne "0" ]; then
+        echo "Building failed, abort."
+        exit 1
+    fi
+
     echo "Running as server"
     ./run_all.sh -m "server" -a "${SERVER}" -rs compat -i "${J9_JAVA_PATH}" -j "${JAVA_PATH}" -l "${LIBVMA_PATH}" # > ./server.log 2>&1
 elif [ "${1}" = "client" ]; then
