@@ -28,4 +28,4 @@ cd ~ || exit 1
 
 cat "${PBS_NODEFILE}" > pbs_nodes
 
-pbsdsh -v "${BENCHMARK_PATH}/hilbert.sh" "${BENCHMARK_PATH}" "${JAVA_PATH}/bin/java" "${J9_JAVA_PATH}/bin/java" "${LIBVMA_PATH}"
+pbsdsh -v "${BENCHMARK_PATH}/hilbert.sh" "${BENCHMARK_PATH}" "${JAVA_PATH}" "${J9_JAVA_PATH}" "${LIBVMA_PATH}"
