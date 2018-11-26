@@ -295,6 +295,35 @@ void rdma_write(connection *conn, uint32_t amount) {
     }
 }
 
+void rdma_read(connection *conn, uint32_t amount) {
+    struct ibv_send_wr *bad_wr;
+
+    if(amount == 0) {
+        return;
+    }
+
+    for(uint32_t i = 0; i < amount; i++) {
+        conn->send_wrs[i].wr_id = 0; // An id can be assigned to each work request. As we don't use it,
+                                     // we just set it to 0.
+        conn->send_wrs[i].sg_list = &conn->send_sge; // The scatter-gather element, that points to our send buffer
+        conn->send_wrs[i].num_sge = 1; // We only have a single scatter-gather-element per work request
+        conn->send_wrs[i].opcode = IBV_WR_RDMA_READ; // Opcode for writing via RDMA
+        conn->send_wrs[i].send_flags = IBV_SEND_SIGNALED; // Generate a work completion for every work request
+        conn->send_wrs[i].wr.rdma.remote_addr = conn->remote_conn_info.remote_address; // Address of the memory region
+                                                                                       // on the remote host
+        conn->send_wrs[i].wr.rdma.rkey = conn->remote_conn_info.rkey; // Remote key of the remote memory region
+        conn->send_wrs[i].next = i < amount - 1 ? &conn->send_wrs[i + 1] : NULL; // Chain work requests, so we can post
+                                                                                 // all at once
+    }
+
+    // Post the work requests to the send queue
+    int ret = ibv_post_send(conn->queue_pair->qp, conn->send_wrs, &bad_wr);
+
+    if(ret != 0) {
+        LOG_ERROR_AND_EXIT("CONNECTION", "Error while posting rdma write work requests! Error: %s", strerror(ret));
+    }
+}
+
 void __exchange_ib_connection_info(connection *conn) {
     char msg[sizeof("0000:00000000:00000000:0000000000000000")];
 

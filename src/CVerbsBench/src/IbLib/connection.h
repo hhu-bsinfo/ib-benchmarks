@@ -148,6 +148,18 @@ void msg_recv(connection *conn, uint32_t amount);
 void rdma_write(connection *conn, uint32_t amount);
 
 /**
+ * Use RDMA to read a given amount of times from a remote host via a given connection.
+ *
+ * The work requests all use the same memory region. They get linked together, so that only a single call of
+ * ibv_post_send() is necessary. Each work request has IBV_SEND_SIGNAL set, so that a work completion will be created
+ * for every sent message.
+ *
+ * @param conn The connection
+ * @param amount The amount of rdma reads to be performed.
+ */
+void rdma_read(connection *conn, uint32_t amount);
+
+/**
  * Exchange the infiniband connection information with a remote host.
  *
  * This function is called only by connect_to_server() and connect_to_client().
