@@ -191,7 +191,7 @@ benchmark()
     
     printf "\\e[92mRunning '%s ${params[*]}'...\\e[0m\\n" "${cmd}"
 
-    eval "${cmd} ${params[*]}" > ./${MODE}_tmp.log 2>&1 
+    eval "${cmd} ${params[*]}" > ./${MODE}_tmp.log 2>&1
   
     local output="$(cat ./${MODE}_tmp.log)"
 
@@ -205,14 +205,14 @@ benchmark()
 
     # Consider latency for pingpong only
     if [ "${MODE}" = "server" ] && [ "${benchmark}" = "pingpong" ] ; then
-        mkdir -p "${outpath}/${benchmark}_${transport}_lat_avg/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_lat_min/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_lat_max/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_lat_95/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_lat_99/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_lat_999/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_lat_9999/"
-        mkdir -p "${outpath}/${benchmark}_${transport}_tp_pkt_send/"
+        mkdir -p "${outpath}/${benchmark}_lat_avg/"
+        mkdir -p "${outpath}/${benchmark}_lat_min/"
+        mkdir -p "${outpath}/${benchmark}_lat_max/"
+        mkdir -p "${outpath}/${benchmark}_lat_95/"
+        mkdir -p "${outpath}/${benchmark}_lat_99/"
+        mkdir -p "${outpath}/${benchmark}_lat_999/"
+        mkdir -p "${outpath}/${benchmark}_lat_9999/"
+        mkdir -p "${outpath}/${benchmark}_tp_pkt_send/"
         
         local avg_lat min_lat max_lat lat_95 lat_99 lat_999 lat_9999 pkts_tp;
 
