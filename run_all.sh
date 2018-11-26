@@ -590,6 +590,7 @@ run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "pingpong" "msg"
 
 run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
 run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
+run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "pingpong" "msg"
 
 run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
 
