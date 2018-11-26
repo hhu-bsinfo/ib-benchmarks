@@ -10,3 +10,6 @@ gradlew.bat
 out/
 *.iml
 *.log
+.classpath
+.project
+.settings/
