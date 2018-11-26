@@ -559,7 +559,12 @@ JVERBS_CMD="${J9_JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JV
 
 rm -rf "results"
 
+run_perftest_series "ib_send_bw" "unidirectional" "msg"
 run_perftest_series "ib_send_bw" "bidirectional" "msg"
+run_perftest_series "ib_write_bw" "unidirectional" "rdma"
+run_perftest_series "ib_write_bw" "bidirectional" "rdma"
+run_perftest_series "ib_send_lat" "pingpong" "msg"
+run_perftest_series "ib_write_lat" "pingpong" "rdma"
 
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "msg"
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "msg"
