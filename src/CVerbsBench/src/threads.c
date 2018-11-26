@@ -402,6 +402,8 @@ void *rdma_write_lat_server_thread(thread_params *params) {
     LOG_INFO("SERVER THREAD", "Finished rdma write lat test with client with Lid 0x%04x and Qpn 0x%08x!",
              conn->remote_conn_info.lid, conn->remote_conn_info.qpn)
 
+    write(conn->remote_sockfd, "close", 6);
+
     LOG_INFO("SERVER THREAD", "Terminating thread...");
 
     return &send_return_vals;
@@ -487,6 +489,8 @@ void *rdma_read_lat_server_thread(thread_params *params) {
 
     LOG_INFO("SERVER THREAD", "Finished rdma read lat test with client with Lid 0x%04x and Qpn 0x%08x!",
              conn->remote_conn_info.lid, conn->remote_conn_info.qpn)
+
+    write(conn->remote_sockfd, "close", 6);
 
     LOG_INFO("SERVER THREAD", "Terminating thread...");
 
