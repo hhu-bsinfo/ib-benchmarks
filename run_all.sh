@@ -326,11 +326,21 @@ perftest_benchmark() {
     read -r -a results <<< $(cat "${MODE}_tmp.log" | tail -n 2 | head -n 1)
 
     if [ "${MODE}" = "server" ]; then
-        mkdir -p "${outpath}/${benchmark}_tp_pkt_send/"
-        mkdir -p "${outpath}/${benchmark}_tp_data_send/"
+        if [ "${benchmark}" = "pingpong" ]; then
+            mkdir -p "${outpath}/${benchmark}_${transport}_lat_min/"
+            mkdir -p "${outpath}/${benchmark}_${transport}_lat_max/"
+            mkdir -p "${outpath}/${benchmark}_${transport}_lat_avg/"
 
-        echo -e "${results[3]}" >> "${outpath}/${benchmark}_tp_pkt_send/${name}(${transport}).csv"
-        echo -e "${results[4]}" >> "${outpath}/${benchmark}_tp_data_send/${name}(${transport}).csv"
+            echo -e "${results[2]}" >> "${outpath}/${benchmark}_${transport}_lat_min/${name}.csv"
+            echo -e "${results[3]}" >> "${outpath}/${benchmark}_${transport}_lat_max/${name}.csv"
+            echo -e "${results[4]}" >> "${outpath}/${benchmark}_${transport}_lat_avg/${name}.csv"
+        else
+            mkdir -p "${outpath}/${benchmark}_${transport}_tp_pkt_send/"
+            mkdir -p "${outpath}/${benchmark}_${transport}_tp_data_send/"
+
+            echo -e "${results[3]}" >> "${outpath}/${benchmark}_${transport}_tp_pkt_send/${name}.csv"
+            echo -e "${results[4]}" >> "${outpath}/${benchmark}_${transport}_tp_data_send/${name}.csv"
+        fi
     else
         printf "\\e[92mWaiting for server to become ready...\\e[0m"
         printf "\\e[92m3...\\e[0m"
@@ -386,6 +396,11 @@ run_perftest_series()
     for i in $(seq 0 20); do
         local size=$((2**i))
         local count=100000000
+
+        # Reduce message count to avoid unncessary long running benchmarks
+        if [ "$benchmark" = "pingpong" ]; then
+            count=10000000
+        fi
         
         if [ "${i}" -ge 13 ]; then
             count=$((count/$((2**$((i-12))))))
