@@ -29,7 +29,7 @@ void init_prot_dom(ib_prot_dom *prot_dom, ib_device *device, const char *name) {
 void register_memory_region(ib_prot_dom *prot_dom, ib_mem_reg *mem_reg) {
     // Register the given memory region in the protection domain
     mem_reg->mr = ibv_reg_mr(prot_dom->pd, mem_reg->addr, mem_reg->size,
-            IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE);
+            IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_REMOTE_READ);
 
     if(mem_reg->mr == NULL) {
         LOG_ERROR_AND_EXIT("PROTECTION DOMAIN", "%s: Unable to register memory region at Address 0x%016lx, "

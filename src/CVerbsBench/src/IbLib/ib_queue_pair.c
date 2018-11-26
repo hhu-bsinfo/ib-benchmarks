@@ -47,7 +47,7 @@ void init_queue_pair(ib_queue_pair *queue_pair, ib_prot_dom *prot_dom, ib_comp_q
     attr.qp_state        = IBV_QPS_INIT; // The desired queue pair state (init)
     attr.pkey_index      = 0; // Partition key index; not used by us
     attr.port_num        = 1; // We always use the first port of the device
-    attr.qp_access_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE;
+    attr.qp_access_flags = IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_REMOTE_READ;
 
     // Change the queue pair state to init
     int result = ibv_modify_qp(queue_pair->qp, &attr, IBV_QP_STATE      |
