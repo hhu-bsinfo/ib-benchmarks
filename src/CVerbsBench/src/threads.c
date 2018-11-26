@@ -260,6 +260,271 @@ void *rdma_write_recv_thread(thread_params *params) {
     return &recv_return_val;
 }
 
+void *msg_lat_server_thread(thread_params *params) {
+    connection *conn = params->conn;
+    uint64_t msg_count = params->msg_count;
+
+    uint32_t queue_size = conn->queue_pair->size;
+    uint64_t msg_progress = 0;
+    uint32_t polled = 0;
+
+    // struct timespec start, end;
+    uint64_t start;
+    uint64_t end;
+
+    // Free previously allocated memory
+    if (send_return_vals) {
+        free(send_return_vals);
+    }
+
+    // Allocate memory for recording the time of each message
+    send_return_vals = (uint64_t*) malloc(sizeof(uint64_t) * msg_count);
+
+    LOG_INFO("SERVER THREAD", "Starting msg lat server thread! Sending to client with "
+                              "Lid 0x%04x and Qpn 0x%08x.", conn->remote_conn_info.lid, conn->remote_conn_info.qpn);
+
+    __pin_current_thread("SERVER THREAD", 0);
+
+    // Send start signal
+    write(conn->remote_sockfd, "start", 6);
+
+    while(msg_count > 0) {
+        start = timer_start();
+
+        // Send a single message and wait until a work completion is generated
+        msg_send(conn, 1);
+
+        do {
+            polled = poll_completions(conn->send_comp_queue);
+        } while(polled == 0);
+
+        end = timer_end_strong();
+
+        // Store recorded time for later
+        send_return_vals[msg_progress++] = timer_calc_delta_ns(start, end);
+
+        msg_count--;
+    }
+
+    LOG_INFO("SERVER THREAD", "Finished msg lat test with client with Lid 0x%04x and Qpn 0x%08x!",
+             conn->remote_conn_info.lid, conn->remote_conn_info.qpn)
+
+    LOG_INFO("SERVER THREAD", "Terminating thread...");
+
+    return &send_return_vals;
+}
+
+void *msg_lat_client_thread(thread_params *params) {
+    connection *conn = params->conn;
+    uint64_t msg_count = params->msg_count;
+
+    uint32_t queue_size = conn->queue_pair->size;
+    uint32_t polled = 0;
+
+    struct timespec start, end;
+
+    LOG_INFO("CLIENT THREAD", "Starting msg lat client thread! Receiving from server with "
+                              "Lid 0x%04x and Qpn 0x%08x.", conn->remote_conn_info.lid, conn->remote_conn_info.qpn);
+
+    __pin_current_thread("CLIENT THREAD", 0);
+
+    // Wait for start signal
+    char buf[6];
+    do {
+        read(conn->remote_sockfd, buf, 6);
+    } while(strcmp(buf, "start") != 0);
+
+    while(msg_count > 0) {
+        // Enforce synchronized sending/receiving
+        msg_recv(conn, 1);
+
+        do {
+            polled = poll_completions(conn->recv_comp_queue);
+        } while(polled == 0);
+
+        msg_count--;
+    }
+
+    LOG_INFO("CLIENT THREAD", "Finished msg lat test with server with Lid 0x%04x and Qpn 0x%08x!",
+             conn->remote_conn_info.lid, conn->remote_conn_info.qpn)
+
+    LOG_INFO("CLIENT THREAD", "Terminating thread...");
+
+    return NULL;
+}
+
+void *rdma_write_lat_server_thread(thread_params *params) {
+    connection *conn = params->conn;
+    uint64_t msg_count = params->msg_count;
+
+    uint32_t queue_size = conn->queue_pair->size;
+    uint64_t msg_progress = 0;
+    uint32_t polled = 0;
+
+    // struct timespec start, end;
+    uint64_t start;
+    uint64_t end;
+
+    // Free previously allocated memory
+    if (send_return_vals) {
+        free(send_return_vals);
+    }
+
+    // Allocate memory for recording the time of each message
+    send_return_vals = (uint64_t*) malloc(sizeof(uint64_t) * msg_count);
+
+    LOG_INFO("SERVER THREAD", "Starting rdma write lat server thread! Sending to client with "
+                              "Lid 0x%04x and Qpn 0x%08x.", conn->remote_conn_info.lid, conn->remote_conn_info.qpn);
+
+    __pin_current_thread("SERVER THREAD", 0);
+
+    // Send start signal
+    write(conn->remote_sockfd, "start", 6);
+
+    while(msg_count > 0) {
+        start = timer_start();
+
+        // Send a single message and wait until a work completion is generated
+        rdma_write(conn, 1);
+
+        do {
+            polled = poll_completions(conn->send_comp_queue);
+        } while(polled == 0);
+
+        end = timer_end_strong();
+
+        // Store recorded time for later
+        send_return_vals[msg_progress++] = timer_calc_delta_ns(start, end);
+
+        msg_count--;
+    }
+
+    LOG_INFO("SERVER THREAD", "Finished rdma write lat test with client with Lid 0x%04x and Qpn 0x%08x!",
+             conn->remote_conn_info.lid, conn->remote_conn_info.qpn)
+
+    LOG_INFO("SERVER THREAD", "Terminating thread...");
+
+    return &send_return_vals;
+}
+
+void *rdma_write_lat_client_thread(thread_params *params) {
+    connection *conn = params->conn;
+    uint64_t msg_count = params->msg_count;
+
+    uint32_t queue_size = conn->queue_pair->size;
+    uint32_t polled = 0;
+    char buf[6];
+
+    struct timespec start, end;
+
+    LOG_INFO("CLIENT THREAD", "Starting rdma write lat client thread! Receiving from server with "
+                              "Lid 0x%04x and Qpn 0x%08x.", conn->remote_conn_info.lid, conn->remote_conn_info.qpn);
+
+    __pin_current_thread("CLIENT THREAD", 0);
+
+    do {
+        read(conn->remote_sockfd, buf, 6);
+    } while(strcmp(buf, "start") != 0);
+
+    // Wait until the server has finished writing via RDMA
+    do {
+        read(conn->remote_sockfd, buf, 6);
+    } while(strcmp(buf, "close") != 0);
+
+    LOG_INFO("CLIENT THREAD", "Finished rdma write lat test with server with Lid 0x%04x and Qpn 0x%08x!",
+             conn->remote_conn_info.lid, conn->remote_conn_info.qpn)
+
+    LOG_INFO("CLIENT THREAD", "Terminating thread...");
+
+    return NULL;
+}
+
+void *rdma_read_lat_server_thread(thread_params *params) {
+    connection *conn = params->conn;
+    uint64_t msg_count = params->msg_count;
+
+    uint32_t queue_size = conn->queue_pair->size;
+    uint64_t msg_progress = 0;
+    uint32_t polled = 0;
+
+    // struct timespec start, end;
+    uint64_t start;
+    uint64_t end;
+
+    // Free previously allocated memory
+    if (send_return_vals) {
+        free(send_return_vals);
+    }
+
+    // Allocate memory for recording the time of each message
+    send_return_vals = (uint64_t*) malloc(sizeof(uint64_t) * msg_count);
+
+    LOG_INFO("SERVER THREAD", "Starting rdma read lat server thread! Sending to client with "
+                              "Lid 0x%04x and Qpn 0x%08x.", conn->remote_conn_info.lid, conn->remote_conn_info.qpn);
+
+    __pin_current_thread("SERVER THREAD", 0);
+
+    // Send start signal
+    write(conn->remote_sockfd, "start", 6);
+
+    while(msg_count > 0) {
+        start = timer_start();
+
+        // Send a single message and wait until a work completion is generated
+        rdma_read(conn, 1);
+
+        do {
+            polled = poll_completions(conn->send_comp_queue);
+        } while(polled == 0);
+
+        end = timer_end_strong();
+
+        // Store recorded time for later
+        send_return_vals[msg_progress++] = timer_calc_delta_ns(start, end);
+
+        msg_count--;
+    }
+
+    LOG_INFO("SERVER THREAD", "Finished rdma read lat test with client with Lid 0x%04x and Qpn 0x%08x!",
+             conn->remote_conn_info.lid, conn->remote_conn_info.qpn)
+
+    LOG_INFO("SERVER THREAD", "Terminating thread...");
+
+    return &send_return_vals;
+}
+
+void *rdma_read_lat_client_thread(thread_params *params) {
+    connection *conn = params->conn;
+    uint64_t msg_count = params->msg_count;
+
+    uint32_t queue_size = conn->queue_pair->size;
+    uint32_t polled = 0;
+    char buf[6];
+
+    struct timespec start, end;
+
+    LOG_INFO("CLIENT THREAD", "Starting rdma read lat client thread! Receiving from server with "
+                              "Lid 0x%04x and Qpn 0x%08x.", conn->remote_conn_info.lid, conn->remote_conn_info.qpn);
+
+    __pin_current_thread("CLIENT THREAD", 0);
+
+    do {
+        read(conn->remote_sockfd, buf, 6);
+    } while(strcmp(buf, "start") != 0);
+
+    // Wait until the server has finished writing via RDMA
+    do {
+        read(conn->remote_sockfd, buf, 6);
+    } while(strcmp(buf, "close") != 0);
+
+    LOG_INFO("CLIENT THREAD", "Finished rdma read lat test with server with Lid 0x%04x and Qpn 0x%08x!",
+             conn->remote_conn_info.lid, conn->remote_conn_info.qpn)
+
+    LOG_INFO("CLIENT THREAD", "Terminating thread...");
+
+    return NULL;
+}
+
 void *pingpong_server_thread(thread_params *params) {
     connection *conn = params->conn;
     uint64_t msg_count = params->msg_count;

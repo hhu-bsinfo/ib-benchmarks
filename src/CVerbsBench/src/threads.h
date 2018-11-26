@@ -51,6 +51,48 @@ void *rdma_write_send_thread(thread_params *params);
 void *rdma_write_recv_thread(thread_params *params);
 
 /**
+ * Server thread for the latency benchmark using messages.
+ *
+ * @return The measured time in nanoseconds.
+ */
+void *msg_lat_server_thread(thread_params *params);
+
+/**
+ * Client thread for the latency benchmark using messages.
+ *
+ * @return The measured time in nanoseconds.
+ */
+void *msg_lat_client_thread(thread_params *params);
+
+/**
+ * Server thread for the latency benchmark using RDMA writes.
+ *
+ * @return The measured time in nanoseconds.
+ */
+void *rdma_write_lat_server_thread(thread_params *params);
+
+/**
+ * Client thread for the latency benchmark using RDMA writes.
+ *
+ * @return The measured time in nanoseconds.
+ */
+void *rdma_write_lat_client_thread(thread_params *params);
+
+/**
+ * Server thread for the latency benchmark using RDMA reads.
+ *
+ * @return The measured time in nanoseconds.
+ */
+void *rdma_read_lat_server_thread(thread_params *params);
+
+/**
+ * Client thread for the latency benchmark using RDMA reads.
+ *
+ * @return The measured time in nanoseconds.
+ */
+void *rdma_read_lat_client_thread(thread_params *params);
+
+/**
  * Server thread for the pingpong benchmark.
  *
  * @return The measured time in nanoseconds.

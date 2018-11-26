@@ -205,6 +205,30 @@ int main(int argc, char **argv) {
         }
 
         pthread_join(send_thread, (void **) &send_times_in_nanos);
+    } else if(!strcmp(benchmark, "latency")) {
+        if(!strcmp(transport, "msg")) {
+            if (!strcmp(mode, "server")) {
+                pthread_create(&send_thread, NULL, (void *(*)(void *)) &msg_lat_server_thread, &params);
+            } else {
+                pthread_create(&send_thread, NULL, (void *(*)(void *)) &msg_lat_client_thread, &params);
+            }
+        } else if(!strcmp(transport, "rdma")) {
+            if (!strcmp(mode, "server")) {
+                pthread_create(&send_thread, NULL, (void *(*)(void *)) &rdma_write_lat_server_thread, &params);
+            } else {
+                pthread_create(&send_thread, NULL, (void *(*)(void *)) &rdma_write_lat_client_thread, &params);
+            }
+        } else if(!strcmp(transport, "rdmar")) {
+            if (!strcmp(mode, "server")) {
+                pthread_create(&send_thread, NULL, (void *(*)(void *)) &rdma_read_lat_server_thread, &params);
+            } else {
+                pthread_create(&send_thread, NULL, (void *(*)(void *)) &rdma_read_lat_client_thread, &params);
+            }
+        } else {
+            LOG_ERROR_AND_EXIT("MAIN", "Invalid transport '%s'!", transport);
+        }
+
+        pthread_join(send_thread, (void **) &send_times_in_nanos);
     } else {
         LOG_ERROR_AND_EXIT("MAIN", "Invalid benchmark '%s'!", benchmark);
     }
@@ -323,7 +347,7 @@ void print_usage() {
  * Print the benchmark results.
  */
 void print_results() {
-    if(!strcmp(benchmark, "pingpong")) {
+    if(!strcmp(benchmark, "pingpong") || !strcmp(benchmark, "latency")) {
         long double total_time_sec = stats_times_get_total(*send_times_in_nanos, count)/ ((long double) 1000000000);
         long double send_pkts_rate = (count / (total_time_sec / ((long double) 1000000000)) / ((long double) 1000000));
 
