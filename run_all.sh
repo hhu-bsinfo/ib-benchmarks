@@ -649,6 +649,8 @@ if [ "$PROCESS_RESULTS_ONLY" != "1" ]; then
     run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "msg"
     run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "rdma"
     run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "rdma"
+    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "rdmar"
+    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "rdmar"
     run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "pingpong" "msg"
     run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "msg"
     run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "rdma"

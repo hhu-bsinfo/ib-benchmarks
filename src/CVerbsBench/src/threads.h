@@ -39,16 +39,23 @@ void *msg_recv_thread(thread_params *params);
  *
  * @return The measured time in nanoseconds
  */
-void *rdma_write_send_thread(thread_params *params);
+void *rdma_write_active_thread(thread_params *params);
 
 /**
- * Wait for a remote host to finish writing via RDMA and measures the time.
+ * Read a buffer from a remote host via RDMA a specified amount of times and measures the time.
+ *
+ * @return The measured time in nanoseconds
+ */
+void *rdma_read_active_thread(thread_params *params);
+
+/**
+ * Wait for a remote host to finish reading/writing via RDMA and measures the time.
  *
  * When the remote host starts writing, it sends 'start' via TCP and when it has finished, it sends 'close'.
  *
  * @return The measured time in nanoseconds
  */
-void *rdma_write_recv_thread(thread_params *params);
+void *rdma_passive_thread(thread_params *params);
 
 /**
  * Server thread for the latency benchmark using messages.

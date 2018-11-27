@@ -161,7 +161,7 @@ void *msg_recv_thread(thread_params *params) {
     return &recv_return_val;
 }
 
-void *rdma_write_send_thread(thread_params *params) {
+void *rdma_write_active_thread(thread_params *params) {
     connection *conn = params->conn;
     uint64_t msg_count = params->msg_count;
 
@@ -221,7 +221,67 @@ void *rdma_write_send_thread(thread_params *params) {
     return &send_return_val;
 }
 
-void *rdma_write_recv_thread(thread_params *params) {
+void *rdma_read_active_thread(thread_params *params) {
+    connection *conn = params->conn;
+    uint64_t msg_count = params->msg_count;
+
+    uint32_t queue_size = conn->queue_pair->size;
+    uint32_t pending_comps = 0;
+
+    struct timespec start, end;
+
+    LOG_INFO("SEND THREAD", "Starting send thread! Reading %ld messages from remote host with Lid 0x%04x and Qpn 0x%08x.",
+             msg_count, conn->remote_conn_info.lid, conn->remote_conn_info.qpn);
+
+    __pin_current_thread("SEND THREAD", 0);
+
+    // Send start signal
+    write(conn->remote_sockfd, "start", 6);
+
+    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+    while (msg_count > 0) {
+        // Always post as much work requests as there are free places in the queue
+        uint32_t batch_size = queue_size - pending_comps;
+
+        if(batch_size > msg_count) {
+            batch_size = (uint32_t) msg_count;
+        }
+
+        rdma_read(conn, batch_size);
+
+        pending_comps += batch_size;
+        msg_count -= batch_size;
+
+        // Poll only a single time
+        // It is not recommended to poll the completion queue empty, as this mostly costs too much time, which would
+        // better be spent posting new work requests
+        pending_comps -= poll_completions(conn->send_comp_queue);
+    }
+
+    // At the end, poll the completion queue until it is empty
+    while(pending_comps > 0) {
+        pending_comps -= poll_completions(conn->send_comp_queue);
+    }
+
+    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+
+    send_return_val = (uint64_t) (end.tv_sec * 1000000000 + end.tv_nsec -
+                                  start.tv_sec * 1000000000 + start.tv_nsec);
+
+    LOG_INFO("SEND THREAD", "Finished sending to receiver with Lid 0x%04x and Qpn 0x%08x!",
+             conn->remote_conn_info.lid, conn->remote_conn_info.qpn)
+
+    LOG_INFO("SEND THREAD", "Sending 'close'-command to remote!")
+
+    write(conn->remote_sockfd, "close", 6);
+
+    LOG_INFO("SEND THREAD", "Terminating thread...");
+
+    return &send_return_val;
+}
+
+void *rdma_passive_thread(thread_params *params) {
     connection *conn = params->conn;
     uint64_t msg_count = params->msg_count;
 

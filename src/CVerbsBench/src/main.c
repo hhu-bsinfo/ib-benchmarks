@@ -168,7 +168,9 @@ int main(int argc, char **argv) {
         if(!strcmp(transport, "msg")) {
             pthread_create(&send_thread, NULL, (void *(*)(void *)) &msg_send_thread, &params);
         } else if(!strcmp(transport, "rdma")) {
-            pthread_create(&send_thread, NULL, (void *(*)(void *)) &rdma_write_send_thread, &params);
+            pthread_create(&send_thread, NULL, (void *(*)(void *)) &rdma_write_active_thread, &params);
+        } else if(!strcmp(transport, "rdmar")) {
+            pthread_create(&send_thread, NULL, (void *(*)(void *)) &rdma_read_active_thread, &params);
         } else {
             LOG_ERROR_AND_EXIT("MAIN", "Invalid transport '%s'!", transport);
         }
@@ -177,8 +179,8 @@ int main(int argc, char **argv) {
     } else if(!strcmp(benchmark, "unidirectional") && !strcmp(mode, "client")) {
         if(!strcmp(transport, "msg")) {
             pthread_create(&recv_thread, NULL, (void *(*)(void *)) &msg_recv_thread, &params);
-        } else if(!strcmp(transport, "rdma")) {
-            pthread_create(&recv_thread, NULL, (void *(*)(void *)) &rdma_write_recv_thread, &params);
+        } else if(!strcmp(transport, "rdma") || !strcmp(transport, "rdmar")) {
+            pthread_create(&recv_thread, NULL, (void *(*)(void *)) &rdma_passive_thread, &params);
         } else {
             LOG_ERROR_AND_EXIT("MAIN", "Invalid transport '%s'!", transport);
         }
@@ -189,8 +191,11 @@ int main(int argc, char **argv) {
             pthread_create(&send_thread, NULL, (void *(*)(void *)) &msg_send_thread, &params);
             pthread_create(&recv_thread, NULL, (void *(*)(void *)) &msg_recv_thread, &params);
         } else if(!strcmp(transport, "rdma")) {
-            pthread_create(&send_thread, NULL, (void *(*)(void *)) &rdma_write_send_thread, &params);
-            pthread_create(&recv_thread, NULL, (void *(*)(void *)) &rdma_write_recv_thread, &params);
+            pthread_create(&send_thread, NULL, (void *(*)(void *)) &rdma_write_active_thread, &params);
+            pthread_create(&recv_thread, NULL, (void *(*)(void *)) &rdma_passive_thread, &params);
+        } else if(!strcmp(transport, "rdmar")) {
+            pthread_create(&send_thread, NULL, (void *(*)(void *)) &rdma_read_active_thread, &params);
+            pthread_create(&recv_thread, NULL, (void *(*)(void *)) &rdma_passive_thread, &params);
         } else {
             LOG_ERROR_AND_EXIT("MAIN", "Invalid transport '%s'!", transport);
         }
@@ -321,7 +326,7 @@ void print_usage() {
            "    Set the benchmark to be executed. Available benchmarks are: "
            "'unidirectional', 'bidirectional' and 'pingpong' (Default: 'unidirectional').\n"
            "-t, --transport\n"
-           "    Set the transport type. Available types are 'msg' and 'send_times_in_nanosrdma' (Default: 'msg').\n"
+           "    Set the transport type. Available types are 'msg', 'rdma' and 'rdmar' (Default: 'msg').\n"
            "-s, --size\n"
            "    Set the message size in bytes (Default: 1024).\n"
            "-c, --count\n"
@@ -337,7 +342,7 @@ void print_usage() {
            "        'off'    = Don't show performance counters (Default).\n"
            "-v, --verbosity\n"
            "    Set the verbosity level: 0 = Fatal errors and raw results,\n"
-           "                             1 = Fatal errors formatted results,\n"
+           "                             1 = Fatal errors and formatted results,\n"
            "                             2 = All errors and formatted results,\n"
            "                             3 = All errors/warnings and formatted results,\n"
            "                             4 = All log messages and formatted results (Default).\n");
@@ -445,21 +450,28 @@ void print_results() {
             }
         }
     } else {
-        long double send_pkts_rate = (count / (send_total_time / ((long double) 1000000000)) / ((long double) 1000000));
+        if(!strcmp(transport, "rdmar")) {
+            uint64_t tmp = recv_total_time;
+            recv_total_time = send_total_time;
+            send_total_time = tmp;
+        }
+
+        long double send_pkts_rate = send_total_time == 0 ? 0 : (count / (send_total_time / ((long double) 1000000000))
+                / ((long double) 1000000));
 
         long double recv_pkts_rate = recv_total_time == 0 ? 0 : (count / (recv_total_time / ((long double) 1000000000))
                 / ((long double) 1000000));
 
-        long double send_avg_throughput_mib = total_data /
+        long double send_avg_throughput_mib = send_total_time == 0 ? 0 : total_data /
                 (send_total_time / ((long double) 1000000000)) / ((long double) 1024) / ((long double) 1024);
 
-        long double send_avg_throughput_mb = total_data /
+        long double send_avg_throughput_mb = send_total_time == 0 ? 0 : total_data /
                 (send_total_time / ((long double) 1000000000)) / ((long double) 1000) / ((long double) 1000);
 
         long double recv_avg_throughput_mib = recv_total_time == 0 ? 0 : total_data /
                 (recv_total_time / ((long double) 1000000000)) / ((long double) 1024) / ((long double) 1024);
 
-        long double recv_avg_throughput_mb = recv_total_time == 0 ? 0 :total_data /
+        long double recv_avg_throughput_mb = recv_total_time == 0 ? 0 : total_data /
                 (recv_total_time / ((long double) 1000000000)) / ((long double) 1000) / ((long double) 1000);
 
         if(verbosity > 0) {
