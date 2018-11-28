@@ -564,6 +564,10 @@ plot_all()
     cd ../..
 }
 
+##################################################################
+# Main entry point
+##################################################################
+
 printf "\\e[94mRunning automatic benchmark script!\\e[0m\\n"
 printf "\\e[94mversion: %s(%s) - git %s, date: %s!\\e[0m\\n\\n" "${GIT_VERSION}" "${GIT_BRANCH}" "${GIT_REV}" "${DATE}"
 
@@ -580,6 +584,10 @@ JSOR_CMD="IBM_JAVA_RDMA_SBUF_SIZE=1048576 IBM_JAVA_RDMA_RBUF_SIZE=1048576 ${J9_J
 JVERBS_CMD="${J9_JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JVerbsBench/build/libs/JVerbsBench.jar"
 
 rm -rf "results"
+
+##################################################################
+# Benchmarks
+##################################################################
 
 # ib perf tools included in OFED package
 run_perftest_series "ib_send_bw" "unidirectional" "msg"
@@ -622,6 +630,10 @@ run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "unidirectional"
 run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "bidirectional"
 run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "pingpong"
 run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "latency"
+
+##################################################################
+# Post processing results
+##################################################################
 
 assemble_results
 plot_all
