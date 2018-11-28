@@ -90,7 +90,8 @@ public class JVerbsBench {
     private enum BENCHMARK {
         UNIDIRECTIONAL, /**< Run a unidirectional benchmark with one sender and one receiver */
         BIDIRECTIONAL,  /**< Run a bidirectional benchmark, where both hosts send and receive simaltaneously */
-        PINGPONG        /**< Run a pingpong benchmark */
+        PINGPONG,       /**< Run a pingpong benchmark */
+        LATENCY         /**<Run a uni-directional latency benchmark> */
     }
 
     /**
@@ -161,6 +162,9 @@ public class JVerbsBench {
                             break;
                         case "pingpong":
                             this.benchmark = BENCHMARK.PINGPONG;
+                            break;
+                        case "latency":
+                            this.benchmark = BENCHMARK.LATENCY;
                             break;
                         default:
                             Log.ERROR_AND_EXIT("MAIN","Invalid benchmark '%s'!", benchmark);
@@ -321,6 +325,29 @@ public class JVerbsBench {
                 Log.ERROR_AND_EXIT("MAIN", "A thread has been interrupted unexpectedly! Error: %s",
                         e.getMessage());
             }
+        } else if(benchmark == BENCHMARK.LATENCY) {
+            if(transport == TRANSPORT.MESSAGING) {
+                if(mode == MODE.SERVER) {
+                    sendThread = new Thread(() -> benchmarks.msgLatBenchmarkServer(connection, messageCount));
+                } else {
+                    sendThread = new Thread(() -> benchmarks.msgLatBenchmarkClient(connection, messageCount));
+                }
+            } else if(transport == TRANSPORT.RDMA) {
+                if(mode == MODE.SERVER) {
+                    sendThread = new Thread(() -> benchmarks.rdmaLatBenchmarkServer(connection, messageCount));
+                } else {
+                    sendThread = new Thread(() -> benchmarks.rdmaLatBenchmarkClient(connection, messageCount));
+                }
+            }
+            
+            sendThread.start();
+
+            try {
+                sendThread.join();
+            } catch (InterruptedException e) {
+                Log.ERROR_AND_EXIT("MAIN", "A thread has been interrupted unexpectedly! Error: %s",
+                        e.getMessage());
+            }
         }
 
         if(perfCounterMode != PERF_COUNTER_MODE.OFF) {
@@ -350,7 +377,7 @@ public class JVerbsBench {
                 "    Set the address to bind the local socket to.\n" +
                 "-b, --benchmark\n" +
                 "    Set the benchmark to be executed. Available benchmarks are: " +
-                "'unidirectional', 'bidirectional' and 'pingpong' (Default: 'unidirectional').\n" +
+                "'unidirectional', 'bidirectional', 'pingpong' and 'latency' (Default: 'unidirectional').\n" +
                 "-t, --transport\n" +
                 "    Set the transport type. Available types are 'msg' and 'rdma' (Default: 'msg').\n" +
                 "-s, --size\n" +
@@ -385,7 +412,7 @@ public class JVerbsBench {
         double sendPktsRate = (messageCount / sendTimeSec / ((double) 1000000));
         double recvPktsRate = recvTimeSec == 0 ? 0 : (messageCount / recvTimeSec / ((double) 1000000));
 
-        if(benchmark == BENCHMARK.PINGPONG) {
+        if(benchmark == BENCHMARK.PINGPONG || benchmark == BENCHMARK.LATENCY) {
             // First, sort results to allow determining percentiles
             stats.sortAscending();
 

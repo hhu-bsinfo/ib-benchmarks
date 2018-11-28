@@ -419,6 +419,189 @@ class Benchmarks {
     }
 
     /**
+     * Start the message benchmark as server
+     *
+     * The measured time in nanoseconds is stored in sendTime.
+     *
+     * @param connection The connection to use for the benchmarks
+     * @param msgCount The amount of message to send and receive
+     */
+    void msgLatBenchmarkServer(Connection connection, long msgCount) {
+        long startTime = 0;
+        long endTime = 0;
+
+        int polled;
+
+        Log.INFO("SERVER THREAD", "Starting message latency server thread!");
+
+        stats = new Stats((int) msgCount);
+
+        try {
+            // Fill receive queue to avoid HCA stalls
+            connection.recvMessages(connection.getQueueSize());
+
+            startTime = System.nanoTime();
+
+            while(msgCount > 0) {
+                stats.start();
+
+                // Send a single message and wait until a work completion is generated
+                connection.sendMessages(1);
+
+                do {
+                    polled = connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
+                } while(polled == 0);
+
+                stats.stop();
+
+                msgCount--;
+            }
+
+            endTime = System.nanoTime();
+        } catch(Exception e) {
+            Log.ERROR_AND_EXIT("SERVER THREAD", "An error occurred, while sending or receiving a message!" +
+                    " Error: '%s'", e.getMessage());
+        }
+
+        Log.INFO("SERVER THREAD", "Finished message latency test!");
+
+        sendTime = endTime - startTime;
+
+        Log.INFO("SERVER THREAD", "Terminating thread...");
+    }
+
+    /**
+     * Start the message latency benchmark as client
+     *
+     * The measured time in nanoseconds is stored in sendTime.
+     *
+     * @param connection The connection to use for the benchmarks
+     * @param msgCount The amount of message to send and receive
+     */
+    void msgLatencyBenchmarkClient(Connection connection, long msgCount) {
+        long startTime = 0;
+        long endTime = 0;
+
+        int polled;
+
+        Log.INFO("CLIENT THREAD", "Starting message latency client thread!");
+
+        try {
+            startTime = System.nanoTime();
+
+            while(msgCount > 0) {
+                // Enforce synchronized sending/receiving
+                connection.recvMessages(1);
+
+                do {
+                    polled = connection.pollCompletionQueue(JVerbsWrapper.CqType.RECV_CQ);
+                } while(polled == 0);
+
+                msgCount--;
+            }
+
+            endTime = System.nanoTime();
+        } catch(Exception e) {
+            Log.ERROR_AND_EXIT("CLIENT THREAD", "An error occurred, while sending or receiving a message!" +
+                    " Error: '%s'", e.getMessage());
+        }
+
+        Log.INFO("CLIENT THREAD", "Finished message latency test!");
+
+        sendTime = endTime - startTime;
+
+        Log.INFO("CLIENT THREAD", "Terminating thread...");
+    }
+
+    /**
+     * Start the RDMA write latency benchmark as server
+     *
+     * The measured time in nanoseconds is stored in sendTime.
+     *
+     * @param connection The connection to use for the benchmarks
+     * @param msgCount The amount of message to send and receive
+     */
+    void rdmaLatBenchmarkServer(Connection connection, long msgCount) {
+        long startTime = 0;
+        long endTime = 0;
+
+        int polled;
+
+        Log.INFO("SERVER THREAD", "Starting RDMA write latency server thread!");
+
+        stats = new Stats((int) msgCount);
+
+        try {
+            // Fill receive queue to avoid HCA stalls
+            connection.recvMessages(connection.getQueueSize());
+
+            startTime = System.nanoTime();
+
+            while(msgCount > 0) {
+                stats.start();
+
+                // Send a single message and wait until a work completion is generated
+                connection.rdmaWrite(1);
+
+                do {
+                    polled = connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
+                } while(polled == 0);
+
+                stats.stop();
+
+                msgCount--;
+            }
+
+            endTime = System.nanoTime();
+        } catch(Exception e) {
+            Log.ERROR_AND_EXIT("SERVER THREAD", "An error occurred, while sending or receiving a message!" +
+                    " Error: '%s'", e.getMessage());
+        }
+
+        Log.INFO("SERVER THREAD", "Finished RDMA write latency test!");
+
+        sendTime = endTime - startTime;
+
+        Log.INFO("SERVER THREAD", "Terminating thread...");
+    }
+
+    /**
+     * Start the RDMA write latency benchmark as client
+     *
+     * The measured time in nanoseconds is stored in sendTime.
+     *
+     * @param connection The connection to use for the benchmarks
+     * @param msgCount The amount of message to send and receive
+     */
+    void rdmaWriteLatencyBenchmarkClient(Connection connection, long msgCount) {
+        long startTime = 0;
+        long endTime = 0;
+
+        int polled;
+
+        Log.INFO("CLIENT THREAD", "Starting RDMA write latency client thread!");
+
+        startTime = System.nanoTime();
+
+        try {
+            DataInputStream inStream = new DataInputStream(connection.getSocket().getInputStream());
+
+            inStream.readFully(buf);
+        } catch (Exception e) {
+            Log.ERROR_AND_EXIT("CLIENT THREAD", "An error occurred, while receiving 'close'! Error: '%s'",
+                    e.getMessage());
+        }
+
+        endTime = System.nanoTime();
+
+        Log.INFO("CLIENT THREAD", "Finished RDMA write latency test!");
+
+        sendTime = endTime - startTime;
+
+        Log.INFO("CLIENT THREAD", "Terminating thread...");
+    }
+
+    /**
      * Get the measured send time.
      */
     long getSendTime() {
