@@ -593,17 +593,22 @@ run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "rdmar"
 run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
 run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
 run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "pingpong" "msg"
+run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "msg"
+run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "rdma"
 
 run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
 run_benchmark_series "JSOR" "${JSOR_CMD}" "pingpong"
+run_benchmark_series "JSOR" "${JSOR_CMD}" "latency"
 
 run_benchmark_series "libvma" "${LIBVMA_CMD}" "unidirectional"
 run_benchmark_series "libvma" "${LIBVMA_CMD}" "bidirectional"
 run_benchmark_series "libvma" "${LIBVMA_CMD}" "pingpong"
+run_benchmark_series "libvma" "${LIBVMA_CMD}" "latency"
 
 run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "unidirectional"
 run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "bidirectional"
 run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "pingpong"
+run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "latency"
 
 assemble_results
 plot_all
