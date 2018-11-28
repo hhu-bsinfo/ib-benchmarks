@@ -426,7 +426,7 @@ class Benchmarks {
      * @param connection The connection to use for the benchmarks
      * @param msgCount The amount of message to send and receive
      */
-    void msgLatBenchmarkServer(Connection connection, long msgCount) {
+    void msgLatencyBenchmarkServer(Connection connection, long msgCount) {
         long startTime = 0;
         long endTime = 0;
 
@@ -437,9 +437,6 @@ class Benchmarks {
         stats = new Stats((int) msgCount);
 
         try {
-            // Fill receive queue to avoid HCA stalls
-            connection.recvMessages(connection.getQueueSize());
-
             startTime = System.nanoTime();
 
             while(msgCount > 0) {
@@ -521,7 +518,7 @@ class Benchmarks {
      * @param connection The connection to use for the benchmarks
      * @param msgCount The amount of message to send and receive
      */
-    void rdmaLatBenchmarkServer(Connection connection, long msgCount) {
+    void rdmaWriteLatencyBenchmarkServer(Connection connection, long msgCount) {
         long startTime = 0;
         long endTime = 0;
 
@@ -562,6 +559,17 @@ class Benchmarks {
 
         sendTime = endTime - startTime;
 
+        Log.INFO("SEND THREAD", "Sending 'close'-command to remote host.");
+
+        try {
+            DataOutputStream outStream = new DataOutputStream(connection.getSocket().getOutputStream());
+
+            outStream.write("close".getBytes());
+        } catch (Exception e) {
+            Log.ERROR_AND_EXIT("SEND THREAD", "An error occurred, while sending 'close'! Error: '%s'",
+                    e.getMessage());
+        }
+
         Log.INFO("SERVER THREAD", "Terminating thread...");
     }
 
@@ -578,6 +586,7 @@ class Benchmarks {
         long endTime = 0;
 
         int polled;
+        byte[] buf = new byte[5];
 
         Log.INFO("CLIENT THREAD", "Starting RDMA write latency client thread!");
 

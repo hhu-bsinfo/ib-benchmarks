@@ -328,16 +328,18 @@ public class JVerbsBench {
         } else if(benchmark == BENCHMARK.LATENCY) {
             if(transport == TRANSPORT.MESSAGING) {
                 if(mode == MODE.SERVER) {
-                    sendThread = new Thread(() -> benchmarks.msgLatBenchmarkServer(connection, messageCount));
+                    sendThread = new Thread(() -> benchmarks.msgLatencyBenchmarkServer(connection, messageCount));
                 } else {
-                    sendThread = new Thread(() -> benchmarks.msgLatBenchmarkClient(connection, messageCount));
+                    sendThread = new Thread(() -> benchmarks.msgLatencyBenchmarkClient(connection, messageCount));
                 }
             } else if(transport == TRANSPORT.RDMA) {
                 if(mode == MODE.SERVER) {
-                    sendThread = new Thread(() -> benchmarks.rdmaLatBenchmarkServer(connection, messageCount));
+                    sendThread = new Thread(() -> benchmarks.rdmaWriteLatencyBenchmarkServer(connection, messageCount));
                 } else {
-                    sendThread = new Thread(() -> benchmarks.rdmaLatBenchmarkClient(connection, messageCount));
+                    sendThread = new Thread(() -> benchmarks.rdmaWriteLatencyBenchmarkClient(connection, messageCount));
                 }
+            } else {
+                sendThread = null;
             }
             
             sendThread.start();
