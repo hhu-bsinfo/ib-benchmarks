@@ -568,11 +568,16 @@ plot_all()
 # Main entry point
 ##################################################################
 
+# Use this switch to execute the post processing of the results (e.g. from a cluster) only
+#PROCESS_RESULTS_ONLY="1"
+
 printf "\\e[94mRunning automatic benchmark script!\\e[0m\\n"
 printf "\\e[94mversion: %s(%s) - git %s, date: %s!\\e[0m\\n\\n" "${GIT_VERSION}" "${GIT_BRANCH}" "${GIT_REV}" "${DATE}"
 
-parse_args "$@"
-check_config
+if [ "$PROCESS_RESULTS_ONLY" != "1" ]; then
+    parse_args "$@"
+    check_config
+fi
 
 printf "\\e[94mUsing '%s' for IPoIB and libvma!\\e[0m\\n" "${JAVA_PATH}"
 printf "\\e[94mUsing '%s' for JSOR and jVerbs!\\e[0m\\n" "${J9_JAVA_PATH}"
@@ -583,53 +588,59 @@ LIBVMA_CMD="sudo LD_PRELOAD=${LIBVMA_PATH} ${JAVA_PATH}/bin/java -Djava.net.pref
 JSOR_CMD="IBM_JAVA_RDMA_SBUF_SIZE=1048576 IBM_JAVA_RDMA_RBUF_SIZE=1048576 ${J9_JAVA_PATH}/bin/java -Dcom.ibm.net.rdma.conf=src/JSocketBench/jsor_${MODE}.conf -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
 JVERBS_CMD="${J9_JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JVerbsBench/build/libs/JVerbsBench.jar"
 
-rm -rf "results"
+if [ "$PROCESS_RESULTS_ONLY" != "1" ]; then
+    rm -rf "results"
+fi
 
 ##################################################################
 # Benchmarks
 ##################################################################
 
-# ib perf tools included in OFED package
-run_perftest_series "ib_send_bw" "unidirectional" "msg"
-run_perftest_series "ib_send_bw" "bidirectional" "msg"
-run_perftest_series "ib_write_bw" "unidirectional" "rdma"
-run_perftest_series "ib_write_bw" "bidirectional" "rdma"
-run_perftest_series "ib_send_lat" "latency" "msg"
-run_perftest_series "ib_write_lat" "latency" "rdma"
+if [ "$PROCESS_RESULTS_ONLY" != "1" ]; then
+    # ib perf tools included in OFED package
+    run_perftest_series "ib_send_bw" "unidirectional" "msg"
+    run_perftest_series "ib_send_bw" "bidirectional" "msg"
+    run_perftest_series "ib_write_bw" "unidirectional" "rdma"
+    run_perftest_series "ib_write_bw" "bidirectional" "rdma"
+    run_perftest_series "ib_send_lat" "latency" "msg"
+    run_perftest_series "ib_write_lat" "latency" "rdma"
 
-# libverbs (native C)
-run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "msg"
-run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "msg"
-run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "rdma"
-run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "rdma"
-run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "pingpong" "msg"
-run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "msg"
-run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "rdma"
-run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "rdmar"
+    # libverbs (native C)
+    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "msg"
+    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "msg"
+    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "rdma"
+    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "rdma"
+    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "pingpong" "msg"
+    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "msg"
+    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "rdma"
+    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "rdmar"
 
-# jVerbs (IBM JVM)
-run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
-run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
-run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "pingpong" "msg"
-run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "msg"
-run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "rdma"
+    # jVerbs (IBM JVM)
+    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
+    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
+    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "pingpong" "msg"
+    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "msg"
+    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "rdma"
 
-# JSOR (IBM JVM)
-run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
-run_benchmark_series "JSOR" "${JSOR_CMD}" "pingpong"
-run_benchmark_series "JSOR" "${JSOR_CMD}" "latency"
+    # JSOR (IBM JVM)
+    run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
+    run_benchmark_series "JSOR" "${JSOR_CMD}" "pingpong"
+    run_benchmark_series "JSOR" "${JSOR_CMD}" "latency"
 
-# libvma library
-run_benchmark_series "libvma" "${LIBVMA_CMD}" "unidirectional"
-run_benchmark_series "libvma" "${LIBVMA_CMD}" "bidirectional"
-run_benchmark_series "libvma" "${LIBVMA_CMD}" "pingpong"
-run_benchmark_series "libvma" "${LIBVMA_CMD}" "latency"
+    # libvma library
+    run_benchmark_series "libvma" "${LIBVMA_CMD}" "unidirectional"
+    run_benchmark_series "libvma" "${LIBVMA_CMD}" "bidirectional"
+    run_benchmark_series "libvma" "${LIBVMA_CMD}" "pingpong"
+    run_benchmark_series "libvma" "${LIBVMA_CMD}" "latency"
 
-# IPoIB using normal Java sockets
-run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "unidirectional"
-run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "bidirectional"
-run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "pingpong"
-run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "latency"
+    # IPoIB using normal Java sockets
+    run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "unidirectional"
+    run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "bidirectional"
+    run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "pingpong"
+    run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "latency"
+else
+    printf "\\e[94mSkipping benchmarks, processing results only\\e[0m\\n\\n"
+fi
 
 ##################################################################
 # Post processing results
