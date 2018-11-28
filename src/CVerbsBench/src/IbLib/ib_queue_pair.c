@@ -108,7 +108,7 @@ void set_qp_state_to_rts(ib_queue_pair *queue_pair) {
     attr.sq_psn = 0; // Packet sequence number, must be the same on both sides
     attr.timeout = 1; // Minimum time to wait for an ACK or NACK from the remote queue pair; 1 = 8.192 us
     attr.retry_cnt = 3; // Maximum amount of retries after not receiving an ACK from the remote queue pair
-    attr.rnr_retry = 3; // Maximum amount of retries after receiving a NACK from the remote queue pair
+    attr.rnr_retry = 6; // Maximum amount of retries after receiving a NACK from the remote queue pair
     attr.max_rd_atomic = 1; // Maximum number of outstanding atomic RDMA operations; not used by us
 
     int result = ibv_modify_qp(queue_pair->qp, &attr, IBV_QP_STATE     |
