@@ -428,7 +428,7 @@ gen_plot_file()
     local plot="\
             FILES = system(\"ls -1 ../merged/${benchmark}_${values_name_y1}/*.csv | grep -E \\\"${filter_files}\\\"\")\\n\
             PACKET_FILES = system(\"ls -1 ../merged/${benchmark}_${values_name_y2}/*.csv | grep -E \\\"${filter_files}\\\"\")\\n\
-            LABELS = system(\"ls -1 ../merged/${benchmark}_${values_name_y1}/*.csv | xargs -0 -n 1 basename | cut -d'.' -f1 | grep -E \\\"${filter_files}\\\"\")\\n\
+            LABELS = system(\"ls -1 ../merged/${benchmark}_${values_name_y1}/*.csv | xargs -n 1 basename | cut -d'.' -f1 | grep -E \\\"${filter_files}\\\"\")\\n\
             COLORS = \"${colors}\"\
             \\n\
             set xlabel '${xlabel}'\\n\
@@ -439,7 +439,7 @@ gen_plot_file()
             set ytics nomirror\\n\
             set datafile separator ','\\n\
             set terminal pdf\\n\
-            set output 'output/${benchmark}_${plot_name}.pdf'\\n"
+            set output 'output/${plot_name}_${benchmark}.pdf'\\n"
 
     if [ "${logscale}" == "true" ]; then
         plot+="set logscale y\\n"
@@ -464,7 +464,7 @@ gen_plot_file()
         mkdir -p "results/plot/scripts"
     fi
 
-    echo -e "${plot}" > "results/plot/scripts/${benchmark}_${plot_name}.plot"
+    echo -e "${plot}" > "results/plot/scripts/${plot_name}.plot"
 }
 
 values_min() 
@@ -523,21 +523,28 @@ assemble_results()
 
     generate_merged_values_benchmark_runs
 
-    gen_plot_file "verbs" "unidirectional" "tp_data_send" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Throughput [MB/s]" "Messages [mmps]" "true" "red" "green" "blue"
-    gen_plot_file "verbs" "unidirectional" "verbs" "overhead_perc_send" "" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Overhead [%]" "" "true" "red" "green" "blue"
+    gen_plot_file "verbs_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "true" "red" "green" "blue"
+    gen_plot_file "verbs_tp_bi" "bidirectional" "tp_data_combined" "tp_pkt_combined" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "true" "red" "green" "blue"
+    gen_plot_file "verbs_pp_avg" "pingpong" "lat_avg" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "red" "green" "blue"
+    gen_plot_file "verbs_pp_999" "pingpong" "lat_999" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "red" "green" "blue"
+    gen_plot_file "verbs_lat_avg" "latency" "lat_avg" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "red" "green" "blue"
+    gen_plot_file "verbs_lat_999" "latency" "lat_999" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "red" "green" "blue"
 
-    #gen_plot_file "unidirectional" "sockets" "latency" "Message size [Bytes]" "Latency [us]" "true" "#8B008B" "#006400" "orange" "#191970"
-    #gen_plot_file "unidirectional" "sockets" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "#8B008B" "#006400" "orange" "#191970"
-    #gen_plot_file "unidirectional" "sockets" "overhead" "Message size [Bytes]" "Overhead [%]" "true" "#8B008B" "#006400" "orange" "#191970"
+    gen_plot_file "sockets_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "true" "red" "green" "blue"
+    gen_plot_file "sockets_tp_uni" "bidirectional" "tp_data_combined" "tp_pkt_combined" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "true" "red" "green" "blue"
 
-    #gen_plot_file "unidirectional" "mixed" "latency" "Message size [Bytes]" "Latency [us]" "true" "red" "orange" "true" "blue" "#191970"
-    #gen_plot_file "unidirectional" "mixed" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "red" "orange" "blue" "#191970"
+    gen_plot_file "sockets_pp_avg" "pingpong" "lat_avg" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "red" "green" "blue"
+    gen_plot_file "sockets_pp_999" "pingpong" "lat_999" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "red" "green" "blue"
+    gen_plot_file "sockets_lat_avg" "latency" "lat_avg" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "red" "green" "blue"
+    gen_plot_file "sockets_lat_999" "latency" "lat_999" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "red" "green" "blue"
 
-    #gen_plot_file "bidirectional" "verbs" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "red" "green" "blue"
-    #gen_plot_file "bidirectional" "sockets" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "#8B008B" "#006400" "orange" "#191970"
-    #gen_plot_file "bidirectional" "mixed" "throughput" "Message size [Bytes]" "Throughput [MB/s]" "false" "red" "orange" "blue" "#191970"
+    gen_plot_file "all_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "true" "red" "green" "blue"
+    gen_plot_file "all_tp_uni" "bidirectional" "tp_data_combined" "tp_pkt_combined" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "true" "red" "green" "blue"
 
-    gen_plot_file "verbs" "pingpong" "lat_avg" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "red" "green" "blue"
+    gen_plot_file "all_pp_avg" "pingpong" "lat_avg" "tp_pkt_send" "CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "red" "green" "blue"
+    gen_plot_file "all_pp_999" "pingpong" "lat_999" "tp_pkt_send" "CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "red" "green" "blue"
+    gen_plot_file "all_lat_avg" "latency" "lat_avg" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "red" "green" "blue"
+    gen_plot_file "all_lat_999" "latency" "lat_999" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "red" "green" "blue"
 }
 
 plot_all()
@@ -574,6 +581,7 @@ JVERBS_CMD="${J9_JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JV
 
 rm -rf "results"
 
+# ib perf tools included in OFED package
 run_perftest_series "ib_send_bw" "unidirectional" "msg"
 run_perftest_series "ib_send_bw" "bidirectional" "msg"
 run_perftest_series "ib_write_bw" "unidirectional" "rdma"
@@ -581,6 +589,7 @@ run_perftest_series "ib_write_bw" "bidirectional" "rdma"
 run_perftest_series "ib_send_lat" "latency" "msg"
 run_perftest_series "ib_write_lat" "latency" "rdma"
 
+# libverbs (native C)
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "msg"
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "msg"
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "rdma"
@@ -590,21 +599,25 @@ run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "msg"
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "rdma"
 run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "rdmar"
 
+# jVerbs (IBM JVM)
 run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
 run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
 run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "pingpong" "msg"
 run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "msg"
 run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "rdma"
 
+# JSOR (IBM JVM)
 run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
 run_benchmark_series "JSOR" "${JSOR_CMD}" "pingpong"
 run_benchmark_series "JSOR" "${JSOR_CMD}" "latency"
 
+# libvma library
 run_benchmark_series "libvma" "${LIBVMA_CMD}" "unidirectional"
 run_benchmark_series "libvma" "${LIBVMA_CMD}" "bidirectional"
 run_benchmark_series "libvma" "${LIBVMA_CMD}" "pingpong"
 run_benchmark_series "libvma" "${LIBVMA_CMD}" "latency"
 
+# IPoIB using normal Java sockets
 run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "unidirectional"
 run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "bidirectional"
 run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "pingpong"
