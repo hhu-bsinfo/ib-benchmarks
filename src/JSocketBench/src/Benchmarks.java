@@ -148,6 +148,72 @@ public class Benchmarks {
     }
 
     /**
+     * Start the latency benchmark as server.
+     *
+     * The measured time in nanoseconds is stored in sendTime.
+     */
+    void latencyBenchmarkServer(Connection connection, long messageCount) {
+        long startTime = 0, endTime = 0;
+
+        Log.INFO("SERVER THREAD", "Starting latency server thread! Doing %d iterations.", messageCount);
+
+        stats = new Stats((int) messageCount);
+
+        try {
+            startTime = System.nanoTime();
+
+            for (int i = 0; i < messageCount; i++) {
+                stats.start();
+
+                connection.sendMessages(1);
+            
+                stats.stop();
+            }
+
+            endTime = System.nanoTime();
+        } catch(Exception e) {
+            Log.ERROR_AND_EXIT("SERVER THREAD", "An error occurred, while sending or receiving a message!"
+                    + "Error: '%s'", e.getMessage());
+        }
+
+        Log.INFO("SERVER THREAD","Finished latency server benchmark!", messageCount);
+
+        sendTime = endTime - startTime;
+
+        Log.INFO("SERVER THREAD", "Terminating thread...", messageCount);
+    }
+
+    /**
+     * Start the latency benchmark as client.
+     *
+     * The measured time in nanoseconds is stored in sendTime.
+     */
+    void latencyBenchmarkClient(Connection connection, long messageCount) {
+        long startTime = 0, endTime = 0;
+
+        Log.INFO("CLIENT THREAD", "Starting latency client thread! Doing %d iterations.", messageCount);
+
+        try {
+            startTime = System.nanoTime();
+
+            for (int i = 0; i < messageCount; i++) {
+                connection.recvMessages(1);
+            }
+
+            endTime = System.nanoTime();
+        } catch(Exception e) {
+            Log.ERROR_AND_EXIT("CLIENT THREAD", "An error occurred, while sending or receiving a message!"
+                    + "Error: '%s'", e.getMessage());
+        }
+
+        Log.INFO("CLIENT THREAD","Finished latency client benchmark!", messageCount);
+
+        sendTime = endTime - startTime;
+
+        Log.INFO("CLIENT THREAD", "Terminating thread...", messageCount);
+    }
+
+    /**
      * Get the time, that has been measured by a send benchmark.
      */
     long getSendTime() {

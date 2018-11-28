@@ -81,7 +81,8 @@ public class JSocketBench {
     private enum BENCHMARK {
         UNIDIRECTIONAL, /**< Run a unidirectional benchmark with one sender and one receiver */
         BIDIRECTIONAL,  /**< Run a bidirectional benchmark, where both hosts send and receive simaltaneously */
-        PINGPONG        /**< Run a pingpong benchmark */
+        PINGPONG,       /**< Run a pingpong benchmark */
+        LATENCY         /**< Run a latency uni-directional benchmark */
     }
 
     /**
@@ -144,6 +145,9 @@ public class JSocketBench {
                             break;
                         case "pingpong":
                             this.benchmark = BENCHMARK.PINGPONG;
+                            break;
+                        case "latency":
+                            this.benchmark = BENCHMARK.LATENCY;
                             break;
                         default:
                             Log.ERROR_AND_EXIT("MAIN","Invalid benchmark '%s'!", benchmark);
@@ -270,6 +274,21 @@ public class JSocketBench {
                 Log.ERROR_AND_EXIT("MAIN", "A thread has been interrupted unexpectedly! Error: %s",
                         e.getMessage());
             }
+        } else if(benchmark == BENCHMARK.LATENCY) {
+            if(mode == MODE.SERVER) {
+                sendThread = new Thread(() -> benchmarks.latencyBenchmarkServer(connection, messageCount));
+            } else {
+                sendThread = new Thread(() -> benchmarks.latencyBenchmarkClient(connection, messageCount));
+            }
+            
+            sendThread.start();
+
+            try {
+                sendThread.join();
+            } catch (InterruptedException e) {
+                Log.ERROR_AND_EXIT("MAIN", "A thread has been interrupted unexpectedly! Error: %s",
+                        e.getMessage());
+            }
         }
 
         if(perfCounterMode != PERF_COUNTER_MODE.OFF) {
@@ -301,7 +320,7 @@ public class JSocketBench {
                 "    Set the address to bind the local socket to.\n" +
                 "-b, --benchmark\n" +
                 "    Set the benchmark to be executed. Available benchmarks are: " +
-                "'unidirectional', 'bidirectional' and 'pingpong' (Default: 'unidirectional').\n" +
+                "'unidirectional', 'bidirectional', 'pingpong' and 'latency' (Default: 'unidirectional').\n" +
                 "-s, --size\n" +
                 "    Set the message size in bytes (Default: 1024).\n" +
                 "-c, --count\n" +
@@ -332,7 +351,7 @@ public class JSocketBench {
         double sendPktsRate = (messageCount / sendTimeSec / ((double) 1000000));
         double recvPktsRate = recvTimeSec == 0 ? 0 : (messageCount / recvTimeSec / ((double) 1000000));
 
-        if(benchmark == BENCHMARK.PINGPONG) {
+        if(benchmark == BENCHMARK.PINGPONG || benchmark == BENCHMARK.LATENCY) {
             // First, sort results to allow determining percentiles
             stats.sortAscending();
 
