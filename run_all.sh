@@ -189,7 +189,7 @@ benchmark()
         params[19]="${port}"
     fi
     
-    printf "\\e[92mRunning '%s ${params[*]}'...\\e[0m\\n" "${cmd}"
+    printf "\\e[92m[%s] Running '%s ${params[*]}'...\\e[0m\\n" "$(date "+%Y-%m-%d %H:%M:%S:%3N")" "${cmd}"
 
     eval "${cmd} ${params[*]}" > ./${MODE}_tmp.log 2>&1
   
@@ -197,10 +197,10 @@ benchmark()
 
     if [[ $output = *"ERROR"* ]]; then
         printf "%s\\n" "${output}"
-        printf "\\e[91mBenchmark exited with an error!\\e[0m\\n\\n"
+        printf "\\e[91m[%s] Benchmark exited with an error!\\e[0m\\n\\n" "$(date "+%Y-%m-%d %H:%M:%S:%3N")"
         exit 1
     else
-        printf "\\e[92mBenchmark exited successful!\\e[0m\\n\\n"
+        printf "\\e[92m[%s] Benchmark exited successful!\\e[0m\\n\\n" "$(date "+%Y-%m-%d %H:%M:%S:%3N")"
     fi
 
     # Consider latency for pingpong only
