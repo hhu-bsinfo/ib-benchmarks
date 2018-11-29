@@ -437,6 +437,8 @@ class Benchmarks {
         stats = new Stats((int) msgCount);
 
         try {
+            connection.getSocket().getOutputStream().write("start".getBytes());
+
             startTime = System.nanoTime();
 
             while(msgCount > 0) {
@@ -480,21 +482,42 @@ class Benchmarks {
         long endTime = 0;
 
         int polled;
+        int halfQueueSize = connection.getQueueSize() / 2;
 
         Log.INFO("CLIENT THREAD", "Starting message latency client thread!");
 
         try {
+            // Fill receive queue to avoid HCA stalls
+            connection.recvMessages(connection.getQueueSize());
+
+            // Wait for start signal from server
+            byte[] buf = new byte[5];
+            DataInputStream stream = new DataInputStream(connection.getSocket().getInputStream());
+
+            stream.readFully(buf);
+
             startTime = System.nanoTime();
 
-            while(msgCount > 0) {
-                // Enforce synchronized sending/receiving
-                connection.recvMessages(1);
+            int batch = 0;
 
+            while(msgCount > 0) {
                 do {
                     polled = connection.pollCompletionQueue(JVerbsWrapper.CqType.RECV_CQ);
                 } while(polled == 0);
 
-                msgCount--;
+                batch += polled;
+
+                // Adding back single receive work requests seems to introduce a heavy
+                // overhead slowing down sending on the remote side for some reason.
+                // This is not a 1:1 copy of the c-verbs version but shouldn't matter for
+                // the sending side as it still can't reach the performance of the
+                // c-based implementation for whatever reason
+                if (batch >= halfQueueSize) {
+                    connection.recvMessages(halfQueueSize);
+                    batch -= halfQueueSize;
+                }
+
+                msgCount -= polled;
             }
 
             endTime = System.nanoTime();
@@ -529,9 +552,6 @@ class Benchmarks {
         stats = new Stats((int) msgCount);
 
         try {
-            // Fill receive queue to avoid HCA stalls
-            connection.recvMessages(connection.getQueueSize());
-
             startTime = System.nanoTime();
 
             while(msgCount > 0) {
