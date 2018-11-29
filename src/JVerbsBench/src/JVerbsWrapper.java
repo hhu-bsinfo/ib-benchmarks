@@ -183,6 +183,8 @@ class JVerbsWrapper {
      */
     PostSendMethod getPostSendMethod(LinkedList<SendWorkRequest> sendWrs) throws Exception {
         if(lastSend != sendWrs.size()) {
+            lastSend = sendWrs.size();
+
             if(postSendMethod != null) {
                 postSendMethod.free();
             }
@@ -206,6 +208,8 @@ class JVerbsWrapper {
      */
     PostReceiveMethod getPostReceiveMethod(LinkedList<ReceiveWorkRequest> recvWrs) throws Exception {
         if(lastReceive != recvWrs.size()) {
+            lastReceive = recvWrs.size();
+
             if(postReceiveMethod != null) {
                 postReceiveMethod.free();
             }
