@@ -17,7 +17,7 @@ if (insource)
 endif ()
 
 # Set compiler-flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c99 -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c99 -Wall -O3 -fno-strict-aliasing")
 
 # Add subdirectories
 add_subdirectory(IbLib)
