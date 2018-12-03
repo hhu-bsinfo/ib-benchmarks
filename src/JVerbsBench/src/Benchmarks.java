@@ -193,7 +193,7 @@ class Benchmarks {
      * @param connection The connection to use for the benchmark
      * @param count The amount of writes to perform
      */
-    void rdmaSendBenchmark(Connection connection, long count) {
+    void rdmaWriteActiveBenchmark(Connection connection, long count) {
         long startTime = 0;
         long endTime = 0;
 
@@ -270,13 +270,97 @@ class Benchmarks {
     }
 
     /**
+     * Start the rdma read benchmark.
+     *
+     * The measured time in nanoseconds is stored in sendTime.
+     *
+     * @param connection The connection to use for the benchmark
+     * @param count The amount of read to perform
+     */
+    void rdmaReadActiveBenchmark(Connection connection, long count) {
+        long startTime = 0;
+        long endTime = 0;
+
+        int queueSize = connection.getQueueSize();
+        int pendingComps = 0;
+
+        Log.INFO("SEND THREAD", "Starting send thread! Writing %d times.", count);
+
+        try {
+            startTime = System.nanoTime();
+
+            while(count > 0) {
+                // Get the amount of free places in the queue
+                int batchSize = queueSize - pendingComps;
+
+                // Post in batches of 10, so that Stateful Verbs Methods can be reused
+                if(batchSize < 10) {
+                    pendingComps -= connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
+                    continue;
+                }
+
+                if(batchSize > count) {
+                    batchSize = (int) count;
+
+                    connection.rdmaRead(batchSize);
+
+                    pendingComps += batchSize;
+                    count -= batchSize;
+                } else {
+                    int i = batchSize;
+
+                    while(i >= 10) {
+                        connection.rdmaRead(10);
+                        i -= 10;
+                    }
+
+                    pendingComps += batchSize - i;
+                    count -= batchSize - i;
+                }
+
+                // Poll only a single time
+                // It is not recommended to poll the completion queue empty, as this mostly costs too much time,
+                // which would better be spent posting new work requests
+                pendingComps -= connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
+            }
+
+            // At the end, poll the completion queue until it is empty
+            while(pendingComps > 0) {
+                pendingComps -= connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
+            }
+
+            endTime = System.nanoTime();
+        } catch(Exception e) {
+            Log.ERROR_AND_EXIT("SEND THREAD", "An error occurred, while sending a message!" +
+                    " Error: '%s'", e.getMessage());
+        }
+
+        Log.INFO("SEND THREAD", "Finished writing!");
+
+        sendTime = endTime - startTime;
+
+        Log.INFO("SEND THREAD", "Sending 'close'-command to remote host.");
+
+        try {
+            DataOutputStream outStream = new DataOutputStream(connection.getSocket().getOutputStream());
+
+            outStream.write("close".getBytes());
+        } catch (Exception e) {
+            Log.ERROR_AND_EXIT("SEND THREAD", "An error occurred, while sending 'close'! Error: '%s'",
+                    e.getMessage());
+        }
+
+        Log.INFO("SEND THREAD", "Terminating thread...");
+    }
+
+    /**
      * Start the rdma receive benchmark.
      *
      * The measured time in nanoseconds is stored in sendTime.
      *
      * @param connection The connection to use for the benchmark
      */
-    void rdmaRecvBenchmark(Connection connection) {
+    void rdmaPassiveBenchmark(Connection connection) {
         long startTime = 0;
         long endTime = 0;
 

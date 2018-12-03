@@ -532,6 +532,38 @@ class Connection {
     }
 
     /**
+     * Use RDMA to read a given amount of times from the remote host.
+     *
+     * @param count The amount of rdma reads to be performed
+     */
+    void rdmaRead(long count) throws Exception {
+        if(count <= 0) {
+            return;
+        }
+
+        sendWrList.clear();
+
+        for(int i = 0; i < count; i++) {
+            sendWrs[i].setWorkRequestId(1);
+            sendWrs[i].setSgeList(sendSges);
+            sendWrs[i].setOpcode(SendWorkRequest.Opcode.IBV_WR_RDMA_READ);
+            sendWrs[i].setSendFlags(SendWorkRequest.IBV_SEND_SIGNALED);
+            sendWrs[i].getRdma().setRemoteAddress(remoteAddress);
+            sendWrs[i].getRdma().setRemoteKey(remoteKey);
+
+            sendWrList.add(sendWrs[i]);
+        }
+
+        PostSendMethod sendMethod = wrapper.getPostSendMethod(sendWrList);
+
+        sendMethod.execute();
+
+        if(!sendMethod.isSuccess()) {
+            Log.ERROR_AND_EXIT("CONNECTION", "PostSendMethod failed!");
+        }
+    }
+
+    /**
      * Poll completions from the completion queue.
      *
      * @return The amount of polled work completions

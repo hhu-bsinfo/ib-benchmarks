@@ -108,7 +108,8 @@ public class JVerbsBench {
      */
     private enum TRANSPORT {
         MESSAGING,  /**< Use messaging for the benchmark */
-        RDMA        /**< Use rdma for the benchmark */
+        RDMA,       /**< Use rdma-write for the benchmark */
+        RDMAR,      /**< Use rdma-read for the benchmark */
     }
 
     /**
@@ -180,6 +181,9 @@ public class JVerbsBench {
                             break;
                         case "rdma":
                             this.transport = TRANSPORT.RDMA;
+                            break;
+                        case "rdmar":
+                            this.transport = TRANSPORT.RDMAR;
                             break;
                         default:
                             Log.ERROR_AND_EXIT("MAIN","Invalid transport '%s'!", true);
@@ -264,8 +268,10 @@ public class JVerbsBench {
         if(mode == MODE.SERVER && benchmark == BENCHMARK.UNIDIRECTIONAL) {
             if(transport == TRANSPORT.MESSAGING) {
                 sendThread = new Thread(() -> benchmarks.messageSendBenchmark(connection, messageCount));
+            } else if(transport == TRANSPORT.RDMA){
+                sendThread = new Thread(() -> benchmarks.rdmaWriteActiveBenchmark(connection, messageCount));
             } else {
-                sendThread = new Thread(() -> benchmarks.rdmaSendBenchmark(connection, messageCount));
+                sendThread = new Thread(() -> benchmarks.rdmaReadActiveBenchmark(connection, messageCount));
             }
 
             sendThread.start();
@@ -280,7 +286,7 @@ public class JVerbsBench {
             if(transport == TRANSPORT.MESSAGING) {
                 recvThread = new Thread(() -> benchmarks.messageRecvBenchmark(connection, messageCount));
             } else {
-                recvThread = new Thread(() -> benchmarks.rdmaRecvBenchmark(connection));
+                recvThread = new Thread(() -> benchmarks.rdmaPassiveBenchmark(connection));
             }
 
             recvThread.start();
@@ -295,9 +301,12 @@ public class JVerbsBench {
             if(transport == TRANSPORT.MESSAGING) {
                 sendThread = new Thread(() -> benchmarks.messageSendBenchmark(connection, messageCount));
                 recvThread = new Thread(() -> benchmarks.messageRecvBenchmark(connection, messageCount));
+            } else if(transport == TRANSPORT.RDMA) {
+                sendThread = new Thread(() -> benchmarks.rdmaWriteActiveBenchmark(connection, messageCount));
+                recvThread = new Thread(() -> benchmarks.rdmaPassiveBenchmark(connection));
             } else {
-                sendThread = new Thread(() -> benchmarks.rdmaSendBenchmark(connection, messageCount));
-                recvThread = new Thread(() -> benchmarks.rdmaRecvBenchmark(connection));
+                sendThread = new Thread(() -> benchmarks.rdmaReadActiveBenchmark(connection, messageCount));
+                recvThread = new Thread(() -> benchmarks.rdmaPassiveBenchmark(connection));
             }
 
             sendThread.start();
@@ -381,7 +390,7 @@ public class JVerbsBench {
                 "    Set the benchmark to be executed. Available benchmarks are: " +
                 "'unidirectional', 'bidirectional', 'pingpong' and 'latency' (Default: 'unidirectional').\n" +
                 "-t, --transport\n" +
-                "    Set the transport type. Available types are 'msg' and 'rdma' (Default: 'msg').\n" +
+                "    Set the transport type. Available types are 'msg', 'rdma' and 'rdmar' (Default: 'msg').\n" +
                 "-s, --size\n" +
                 "    Set the message size in bytes (Default: 1024).\n" +
                 "-c, --count\n" +
@@ -425,6 +434,11 @@ public class JVerbsBench {
         }
 
         if(benchmark == BENCHMARK.PINGPONG || benchmark == BENCHMARK.LATENCY) {
+            double sendTimeSec = (double) benchmarks.getSendTime() / 1000000000.0;
+            double recvTimeSec = (double)  benchmarks.getRecvTime() / 1000000000.0;
+
+            double sendPktsRate = (messageCount / sendTimeSec / ((double) 1000000));
+
             // First, sort results to allow determining percentiles
             stats.sortAscending();
 
@@ -459,9 +473,17 @@ public class JVerbsBench {
                 System.out.printf("%f\n", sendPktsRate);
             }
         } else {
-            double sendAvgThroughputMib = totalData / sendTimeSec / ((double) 1024) / ((double) 1024);
+            if(transport == TRANSPORT.RDMAR) {
+                double tmp = recvTimeSec;
+                recvTimeSec = sendTimeSec;
+                sendTimeSec = tmp;
+            }
 
-            double sendAvgThroughputMb = totalData / sendTimeSec / ((double) 1000) / ((double) 1000);
+            double sendAvgThroughputMib = sendTimeSec == 0 ? 0 :  totalData /
+                    sendTimeSec / ((double) 1024) / ((double) 1024);
+
+            double sendAvgThroughputMb = sendTimeSec == 0 ? 0 : totalData /
+                    sendTimeSec / ((double) 1000) / ((double) 1000);
 
             double recvAvgThroughputMib = recvTimeSec == 0 ? 0 : totalData /
                     recvTimeSec / ((double) 1024) / ((double) 1024);
