@@ -75,7 +75,7 @@ parse_args()
             exit 0
             ;;
             *)
-            printf "Unknown option '%s'\\n" "${arg}"
+            LOG_ERROR "Unknown option '%s'" "${arg}"
             print_usage
             exit 1
             ;;
@@ -84,18 +84,15 @@ parse_args()
     done
 
     if [ "${MODE}" != "server" ] && [ "${MODE}" != "client" ]; then
-        printf "\\e[91mInvalid mode '%s'!\\e[0m\\n" "${arg}"
-        exit 1
+        LOG_ERROR_AND_EXIT "Invalid mode '%s'!" "${arg}"
     fi
 
     if [ "${MODE}" = "client" ] && [ "${REMOTE_ADDRESS}" = "" ]; then
-        printf "\\e[91mMissing required parameter '--remote'!\\e[0m\\n"
-        exit 1
+        LOG_ERROR_AND_EXIT "Missing required parameter '--remote'!"
     fi
 
     if [ "${RS_MODE}" != "mad" ] && [ "${RS_MODE}" != "compat" ]; then
-        printf "\\e[91mInvalid raw statistics mode '%s'!\\e[0m\\n" "${RS_MODE}"
-        exit 1
+        LOG_ERROR_AND_EXIT "Invalid raw statistics mode '%s'!" "${RS_MODE}"
     fi
 }
 
@@ -103,7 +100,7 @@ check_config()
 {
     local java_version j9_java_valid j9_java_version libvma_soname libvma_version
 
-    printf "\\e[92mChecking configuration...\\e[0m\\n\\n"
+    LOG_INFO "Checking configuration..."
     
     java_version=$("${JAVA_PATH}/bin/java" -version 2>&1 | sed -n ';s/.* version "\(.*\)\.\(.*\)\..*"/\1\2/p;')
     j9_java_valid=$("${J9_JAVA_PATH}/bin/java" -version 2>&1 | grep "IBM J9 VM");
@@ -112,46 +109,40 @@ check_config()
     libvma_version=$(echo "${libvma_soname}" | sed -e 's/libvma.so.//')
 
     if [ -z "${java_version}" ]; then
-        printf "\\e[91m'%s' does not seem to be a valid java executable!\\e[0m\\n" "${JAVA_PATH}"
-        exit 1 
+        LOG_ERROR_AND_EXIT "'%s' does not seem to be a valid java executable!" "${JAVA_PATH}"
     fi
 
     if [ -z "${j9_java_version}" ]; then
-        printf "\\e[91m'%s' does not seem to be a valid java executable!\\e[0m\\n" "${J9_JAVA_PATH}"
-        exit 1
+        LOG_ERROR_AND_EXIT "'%s' does not seem to be a valid java executable!" "${J9_JAVA_PATH}"
     fi
 
     if [ -z "${j9_java_valid}" ]; then
-        printf "\\e[91m'%s' does not seem to belong to a valid IBM J9 JVM!\\e[0m\\n" "${J9_JAVA_PATH}"
-        exit 1
+        LOG_ERROR_AND_EXIT "'%s' does not seem to belong to a valid IBM J9 JVM!" "${J9_JAVA_PATH}"
     fi
 
     if [ "${java_version}" -lt 18 ]; then
-        printf "\\e[91m'%s' implements a version of java older than 1.8 (determined version %u)!\\e[0m\\n" "${JAVA_PATH}" "${java_version}"
-        exit 1
+        LOG_ERROR_AND_EXIT "'%s' implements a version of java older than 1.8 (determined version %u)!" "${JAVA_PATH}" "${java_version}"
     else
-        printf "\\e[92mDefault JVM: '%s' - Determined version: %u --> [VALID]\\n" "${JAVA_PATH}" "${java_version}"
+        LOG_INFO "Default JVM: '%s' - Determined version: %u --> [VALID]" "${JAVA_PATH}" "${java_version}"
     fi
 
     if [ "${j9_java_version}" -lt 18 ]; then
-        printf "\\e[91m'%s' implements a version of java older than 1.8 (determined version %u)!\\e[0m\\n" "${J9_JAVA_PATH}" "${j9_java_version}"
-        exit 1
+        LOG_ERROR_AND_EXIT "'%s' implements a version of java older than 1.8 (determined version %u)!" "${J9_JAVA_PATH}" "${j9_java_version}"
     else
-        printf "\\e[92mIBM J9 JVM: '%s' - Determined version: %u --> [VALID]\\n" "${J9_JAVA_PATH}" "${j9_java_version}"
+        LOG_INFO "IBM J9 JVM: '%s' - Determined version: %u --> [VALID]" "${J9_JAVA_PATH}" "${j9_java_version}"
     fi
 
     if [[ ! "${libvma_soname}" =~ libvma.so ]]; then
-        printf "\\e[91m'%s' is not a valid version of libvma!\\e[0m\\n" "${LIBVMA_PATH}"
-        exit 1
+        LOG_ERROR_AND_EXIT "'%s' is not a valid version of libvma!" "${LIBVMA_PATH}"
     fi
 
-    printf "\\e[92mlibvma: '%s' - soname: '%s' - Determined version: %u --> [VALID]\\n" "${LIBVMA_PATH}" "${libvma_soname}" "${libvma_version}"
+    LOG_INFO "libvma: '%s' - soname: '%s' - Determined version: %u --> [VALID]" "${LIBVMA_PATH}" "${libvma_soname}" "${libvma_version}"
 
     if [ "${libvma_version}" -lt 8 ]; then
-        printf "\\e[93mIt seems like you are using an old version of libvma. Consider updating libvma for optimal performance and compatibility!\\e[0m\\n"
+        LOG_WARN "It seems like you are using an old version of libvma. Consider updating libvma for optimal performance and compatibility!"
     fi
 
-    printf "\\n\\e[92mConfiguration seems to be valid!\\e[0m\\n\\n"
+    LOG_INFO "Configuration seems to be valid!"
 }
 
 benchmark()
@@ -189,18 +180,17 @@ benchmark()
         params[19]="${port}"
     fi
     
-    printf "\\e[92m[%s] Running '%s ${params[*]}'...\\e[0m\\n" "$(date "+%Y-%m-%d %H:%M:%S:%3N")" "${cmd}"
+    LOG_INFO "Running '%s ${params[*]}'..." "${cmd}"
 
     eval "${cmd} ${params[*]}" > ./${MODE}_tmp.log 2>&1
   
     local output="$(cat ./${MODE}_tmp.log)"
 
     if [[ $output = *"ERROR"* ]]; then
-        printf "%s\\n" "${output}"
-        printf "\\e[91m[%s] Benchmark exited with an error!\\e[0m\\n\\n" "$(date "+%Y-%m-%d %H:%M:%S:%3N")"
-        exit 1
+        printf "%s" "${output}"
+        LOG_ERROR_AND_EXIT "Benchmark exited with an error!"
     else
-        printf "\\e[92m[%s] Benchmark exited successful!\\e[0m\\n\\n" "$(date "+%Y-%m-%d %H:%M:%S:%3N")"
+        LOG_INFO "Benchmark exited successfully!\\n"
     fi
 
     # Consider latency for pingpong only
@@ -309,7 +299,7 @@ benchmark()
         echo -e "${recv_raw_tp}" >> "${outpath}/${benchmark}_tp_raw_recv/${name}(${transport}).csv"
         echo -e "${combined_raw_tp}" >> "${outpath}/${benchmark}_tp_raw_combined/${name}(${transport}).csv"
     else
-        printf "\\e[92mWaiting for server to become ready... \\e[0m"
+        LOG_INFO "Waiting for server to become ready..."
         printf "\\e[92m3...\\e[0m"
         sleep 1s
         printf "\\e[92m2...\\e[0m"
@@ -341,14 +331,13 @@ perftest_benchmark() {
         params+=("-b")
     fi
 
-    printf "\\e[92mRunning '%s ${params[*]}'...\\e[0m\\n" "${name}"
+    LOG_INFO "Running '%s ${params[*]}'..." "${name}"
     eval "${name} ${params[*]}" > "${MODE}_tmp.log" 2>&1
 
     if [ $? -eq 0 ]; then
-        printf "\\e[92mBenchmark exited successful!\\e[0m\\n\\n"
+        LOG_INFO "Benchmark exited successfully!\\n"
     else
-        printf "\\e[91mBenchmark exited with an error! See %s_tmp.log for further details.\\e[0m\\n\\n" "${MODE}"
-        exit 1
+        LOG_ERROR_AND_EXIT "Benchmark exited with an error! See %s_tmp.log for further details." "${MODE}"
     fi
 
     local results
@@ -371,7 +360,7 @@ perftest_benchmark() {
             echo -e "${results[4]}" >> "${outpath}/${benchmark}_tp_data_send/${name}(${transport}).csv"
         fi
     else
-        printf "\\e[92mWaiting for server to become ready...\\e[0m"
+        LOG_INFO "Waiting for server to become ready..."
         printf "\\e[92m3...\\e[0m"
         sleep 1s
         printf "\\e[92m2...\\e[0m"
@@ -384,7 +373,7 @@ perftest_benchmark() {
 
 wait()
 {
-    printf "\\e[94mWaiting 1 minute for ports to be available again...\\e[0m\\n\\n"
+    LOG_INFO "Waiting 1 minute for ports to be available again..."
     sleep 60
 }
 
@@ -496,12 +485,12 @@ gen_plot_file()
     echo -e "${plot}" > "results/plot/scripts/${plot_name}.plot"
 }
 
-values_min() 
+values_min()
 {
     printf "%s\n" "${@:1}" | sort -g | head -n1
 }
 
-values_max() 
+values_max()
 {
     printf "%s\n" "${@:1}" | sort -gr | head -n1
 }
@@ -548,7 +537,7 @@ generate_merged_values_benchmark_runs()
 
 assemble_results()
 {
-    printf "\\e[94mAssembling results...\\e[0m\\n"
+    LOG_INFO "Assembling results..."
 
     #generate_merged_values_benchmark_runs
 
@@ -587,7 +576,7 @@ assemble_results()
 
 plot_all()
 {
-    printf "\\e[94mGenerating plots...\\e[0m\\n"
+    LOG_INFO "Generating plots..."
 
     if [ ! -d "results/plot/output" ]; then
         mkdir -p "results/plot/output"
@@ -609,17 +598,25 @@ plot_all()
 # Use this switch to execute the post processing of the results (e.g. from a cluster) only
 #PROCESS_RESULTS_ONLY="1"
 
-printf "\\e[94mRunning automatic benchmark script!\\e[0m\\n"
-printf "\\e[94mversion: %s(%s) - git %s, date: %s!\\e[0m\\n\\n" "${GIT_VERSION}" "${GIT_BRANCH}" "${GIT_REV}" "${DATE}"
+source log.sh
+
+LOG_INFO "Running automatic benchmark script!"
+LOG_INFO "version: %s(%s) - git %s, date: %s!" "${GIT_VERSION}" "${GIT_BRANCH}" "${GIT_REV}" "${DATE}"
+
+printf "\\n"
 
 if [ "$PROCESS_RESULTS_ONLY" != "1" ]; then
     parse_args "$@"
     check_config
 fi
 
-printf "\\e[94mUsing '%s' for IPoIB and libvma!\\e[0m\\n" "${JAVA_PATH}"
-printf "\\e[94mUsing '%s' for JSOR and jVerbs!\\e[0m\\n" "${J9_JAVA_PATH}"
-printf "\\e[94mUsing '%s' for libvma!\\e[0m\\n\\n" "${LIBVMA_PATH}"
+printf "\\n"
+
+LOG_INFO "Using '%s' for IPoIB and libvma!" "${JAVA_PATH}"
+LOG_INFO "Using '%s' for JSOR and jVerbs!" "${J9_JAVA_PATH}"
+LOG_INFO "Using '%s' for libvma!" "${LIBVMA_PATH}"
+
+printf "\\n"
 
 JSOCKET_CMD="${JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
 # VMA_TRACELEVEL: 0-6 debug output level (set to 0 to have results only printed)
@@ -682,7 +679,7 @@ if [ "$PROCESS_RESULTS_ONLY" != "1" ]; then
     run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "pingpong"
     run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "latency"
 else
-    printf "\\e[94mSkipping benchmarks, processing results only\\e[0m\\n\\n"
+    LOG_INFO "Skipping benchmarks, processing results only"
 fi
 
 ##################################################################

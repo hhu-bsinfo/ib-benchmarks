@@ -44,7 +44,7 @@ parse_args()
             exit 0
             ;;
             *)
-            printf "Unknown option '%s'\\n" "${arg}"
+            LOG_ERROR "Unknown option '%s'" "${arg}"
             print_usage
             exit 1
             ;;
@@ -57,49 +57,44 @@ check_config()
 {
     local java_version j9_java_valid j9_java_version
 
-    printf "\\e[92mChecking configuration...\\e[0m\\n\\n"
+    LOG_INFO "Checking configuration..."
     
     java_version=$("${JAVA_PATH}/bin/java" -version 2>&1 | sed -n ';s/.* version "\(.*\)\.\(.*\)\..*"/\1\2/p;')
     j9_java_valid=$("${J9_JAVA_PATH}/bin/java" -version 2>&1 | grep "IBM J9 VM");
     j9_java_version=$("${J9_JAVA_PATH}/bin/java" -version 2>&1 | sed -n ';s/.* version "\(.*\)\.\(.*\)\..*"/\1\2/p;')
 
     if [ -z "${java_version}" ]; then
-        printf "\\e[91m'%s' does not seem to contain a valid JDK!\\e[0m\\n" "${JAVA_PATH}"
-        exit 1 
+        LOG_ERROR_AND_EXIT "'%s' does not seem to contain a valid JDK!" "${JAVA_PATH}"
     fi
 
     if [ -z "${j9_java_version}" ]; then
-        printf "\\e[91m'%s' does not seem to contain a valid JDK!\\e[0m\\n" "${J9_JAVA_PATH}"
-        exit 1
+        LOG_ERROR_AND_EXIT "'%s' does not seem to contain a valid JDK!" "${J9_JAVA_PATH}"
     fi
 
     if [ -z "${j9_java_valid}" ]; then
-        printf "\\e[91m'%s' does not seem to contain a valid IBM JDK!\\e[0m\\n" "${J9_JAVA_PATH}"
-        exit 1
+        LOG_ERROR_AND_EXIT "'%s' does not seem to contain a valid IBM JDK!" "${J9_JAVA_PATH}"
     fi
 
     if [ "${java_version}" -lt 18 ]; then
-        printf "\\e[91m'%s' implements a version of java older than 1.8 (determined version %u)!\\e[0m\\n" "${JAVA_PATH}" "${java_version}"
-        exit 1
+        LOG_ERROR_AND_EXIT "'%s' implements a version of java older than 1.8 (determined version %u)!" "${JAVA_PATH}" "${java_version}"
     else
-        printf "\\e[92mDefault JVM: '%s' - Determined version: %u --> [VALID]\\n" "${JAVA_PATH}" "${java_version}"
+        LOG_INFO "Default JVM: '%s' - Determined version: %u --> [VALID]" "${JAVA_PATH}" "${java_version}"
     fi
 
     if [ "${j9_java_version}" -lt 18 ]; then
-        printf "\\e[91m'%s' implements a version of java older than 1.8 (determined version %u)!\\e[0m\\n" "${J9_JAVA_PATH}" "${j9_java_version}"
-        exit 1
+        LOG_ERROR_AND_EXIT "'%s' implements a version of java older than 1.8 (determined version %u)!" "${J9_JAVA_PATH}" "${j9_java_version}"
     else
-        printf "\\e[92mIBM J9 JVM: '%s' - Determined version: %u --> [VALID]\\n" "${J9_JAVA_PATH}" "${j9_java_version}"
+        LOG_INFO "IBM J9 JVM: '%s' - Determined version: %u --> [VALID]" "${J9_JAVA_PATH}" "${j9_java_version}"
     fi
 
-    printf "\\n\\e[92mConfiguration seems to be valid!\\e[0m\\n\\n"
+    LOG_INFO "Configuration seems to be valid!"
 }
 
 generate_doc()
 {
     local prog=$1
 
-    printf "\\n\\e[92mGenerating documentation for '%s'...\\e[0m\\n" "${prog}"
+    LOG_INFO "Generating documentation for '%s'..." "${prog}"
 
     mkdir -p "doc/${prog}/"
     
@@ -108,11 +103,9 @@ generate_doc()
     doxygen "src/${prog}/doxygen.conf" >> build.log 2>&1
 
     if [ $? -eq 0 ]; then
-        printf "\\e[92mFinished successfully!\\e[0m\\n"
+        LOG_INFO "Finished successfully!"
     else
-        printf "\\e[91mFinished with an error!\\e[0m\\n"
-        printf "\\n\\e[94mSee 'build.log' for detailed output messages!\\e[0m\\n"
-        exit 1
+        LOG_ERROR_AND_EXIT "Finished with an error! See 'build.log' for detailed output messages!"
     fi
 
     ln -s "${prog}/html/index.html" "doc/${prog}.html"
@@ -123,18 +116,16 @@ build()
     local prog=$1
     local cmd=$2
 
-    printf "\\n\\e[92mBuilding '%s'...\\e[0m\\n" "${prog}"
+    LOG_INFO "Building '%s'...\\e[0m" "${prog}"
     
     printf "\\n\\n\\n\\n\\nExecuting '%s':\\n\\n" "${cmd}" >> build.log
     
     cd "src/${prog}" && $cmd >> ../../build.log 2>&1
 
     if [ $? -eq 0 ]; then
-        printf "\\e[92mBuild successful!\\e[0m\\n"
+        LOG_INFO "Build was successful!"
     else
-        printf "\\e[91mBuild failed!\\e[0m\\n"
-        printf "\\n\\e[94mSee 'build.log' for detailed output messages!\\e[0m\\n"
-        exit 1
+        LOG_ERROR_AND_EXIT "Build failed! See 'build.log' for detailed output messages!"
     fi
 
     cd "../.." || exit;
@@ -144,19 +135,17 @@ clean()
 {
     local prog=$1
     local cmd=$2
-    
-    printf "\\n\\e[92mCleaning '%s'...\\e[0m\\n" "${prog}"
+
+    LOG_INFO "Cleaning '%s'..." "${prog}"
     
     printf "\\n\\n\\n\\n\\nExecuting '%s':\\n\\n" "${cmd}" >> build.log
     
     cd "src/${prog}" && $cmd >> ../../build.log 2>&1
 
     if [ $? -eq 0 ]; then
-        printf "\\e[92mCleaned successful!\\e[0m\\n"
+        LOG_INFO "Cleaned successfully!"
     else
-        printf "\\e[91mCleaning failed!\\e[0m\\n"
-        printf "\\n\\e[94mSee 'build.log' for detailed output messages!\\e[0m\\n"
-        exit 1
+        LOG_ERROR_AND_EXIT "Cleaning failed! See 'build.log' for detailed output messages!"
     fi
 
     cd "../.." || exit;
@@ -195,11 +184,21 @@ clean_all()
     clean "JVerbsBench" "./gradlew clean"
 }
 
-printf "\\e[94mRunning automatic build script!\\e[0m\\n"
-printf "\\e[94mversion: %s(%s) - git %s, date: %s!\\e[0m\\n\\n" "${GIT_VERSION}" "${GIT_BRANCH}" "${GIT_REV}" "${DATE}"
+##################################################################
+# Main entry point
+##################################################################
+
+source "log.sh"
+
+LOG_INFO "Running automatic build script!"
+LOG_INFO "version: %s(%s) - git %s, date: %s!" "${GIT_VERSION}" "${GIT_BRANCH}" "${GIT_REV}" "${DATE}"
+
+printf "\\n"
 
 parse_args "$@"
 check_config
+
+printf "\\n"
 
 printf "Log from %s" "${DATE}" > build.log
 
@@ -214,11 +213,13 @@ case $MODE in
         clean_all
         ;;
     *)
-        printf "Unknown mode '%s'\\n" "${MODE}"
+        LOG_ERROR "Unknown mode '%s'\\n" "${MODE}"
         print_usage
         exit 1
 esac
 
-printf "\\n\\e[94mSee 'build.log' for detailed output messages!\\e[0m\\n"
+printf "\\n"
+
+LOG_INFO "See 'build.log' for detailed output messages!"
 
 exit 0
