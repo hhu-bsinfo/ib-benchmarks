@@ -347,8 +347,62 @@ void print_usage() {
  * Print the benchmark results.
  */
 void print_results() {
+    bool show_perf_counters = !strcmp(perf_counter_mode, "mad") || !strcmp(perf_counter_mode, "compat");
+    uint64_t total_data = count * buf_size;
+
+    uint64_t xmit_pkts = 0;
+    uint64_t xmit_data_bytes = 0;
+    uint64_t rcv_pkts = 0;
+    uint64_t rcv_data_bytes = 0;
+
+    if(!strcmp(perf_counter_mode, "mad")) {
+        xmit_pkts = perf_counter.xmit_pkts;
+        xmit_data_bytes = perf_counter.xmit_data_bytes;
+        rcv_pkts = perf_counter.rcv_pkts;
+        rcv_data_bytes = perf_counter.rcv_data_bytes;
+    } else if(!strcmp(perf_counter_mode, "compat")) {
+        xmit_pkts = perf_counter_compat.xmit_pkts;
+        xmit_data_bytes = perf_counter_compat.xmit_data_bytes;
+        rcv_pkts = perf_counter_compat.rcv_pkts;
+        rcv_data_bytes = perf_counter_compat.rcv_data_bytes;
+    }
+
+    long double send_overhead = 0;
+    long double recv_overhead = 0;
+
+    if(total_data < rcv_data_bytes) {
+        recv_overhead = rcv_data_bytes - total_data;
+    }
+
+    if(total_data < xmit_data_bytes) {
+        send_overhead = xmit_data_bytes - total_data;
+    }
+
+    long double send_overhead_percentage = send_overhead / (long double) total_data;
+    long double recv_overhead_percentage = recv_overhead / (long double) total_data;
+
+    uint64_t send_total_time;
+    uint64_t recv_total_time;
+
     if(!strcmp(benchmark, "pingpong") || !strcmp(benchmark, "latency")) {
-        long double total_time_sec = stats_times_get_total(*send_times_in_nanos, count)/ ((long double) 1000000000);
+        send_total_time = stats_times_get_total(*send_times_in_nanos, count);
+        recv_total_time = 0;
+    } else {
+        send_total_time = *send_time_in_nanos;
+        recv_total_time = !strcmp(benchmark, "unidirectional") ? 0 : *recv_time_in_nanos;
+    }
+
+    // Even if we only send data, a few bytes will also be received, because of the RC-protocol,
+    // so if recv_total_time is 0, we just set it to send_total_time,
+    // so that the raw receive throughput can be calculated correctly.
+    if (recv_total_time == 0) {
+        recv_total_time = send_total_time;
+    } else if (send_total_time == 0) {
+        recv_total_time = 0;
+    }
+
+    if(!strcmp(benchmark, "pingpong") || !strcmp(benchmark, "latency")) {
+        long double total_time_sec = send_total_time / ((long double) 1000000000);
         long double send_pkts_rate = (count / (total_time_sec / ((long double) 1000000000)) / ((long double) 1000000));
 
         if(!strcmp(mode, "server")) {
@@ -391,29 +445,6 @@ void print_results() {
             }
         }
     } else {
-        bool show_perf_counters = !strcmp(perf_counter_mode, "mad") || !strcmp(perf_counter_mode, "compat");
-
-        uint64_t total_data = count * buf_size;
-        uint64_t send_total_time = *send_time_in_nanos;
-        uint64_t recv_total_time = !strcmp(benchmark, "unidirectional") ? 0 : *recv_time_in_nanos;
-
-        uint64_t xmit_pkts = 0;
-        uint64_t xmit_data_bytes = 0;
-        uint64_t rcv_pkts = 0;
-        uint64_t rcv_data_bytes = 0;
-
-        if(!strcmp(perf_counter_mode, "mad")) {
-            xmit_pkts = perf_counter.xmit_pkts;
-            xmit_data_bytes = perf_counter.xmit_data_bytes;
-            rcv_pkts = perf_counter.rcv_pkts;
-            rcv_data_bytes = perf_counter.rcv_data_bytes;
-        } else if(!strcmp(perf_counter_mode, "compat")) {
-            xmit_pkts = perf_counter_compat.xmit_pkts;
-            xmit_data_bytes = perf_counter_compat.xmit_data_bytes;
-            rcv_pkts = perf_counter_compat.rcv_pkts;
-            rcv_data_bytes = perf_counter_compat.rcv_data_bytes;
-        }
-
         long double send_pkts_rate = (count / (send_total_time / ((long double) 1000000000)) / ((long double) 1000000));
 
         long double recv_pkts_rate = recv_total_time == 0 ? 0 : (count / (recv_total_time / ((long double) 1000000000))
@@ -431,41 +462,6 @@ void print_results() {
         long double recv_avg_throughput_mb = recv_total_time == 0 ? 0 :total_data /
                 (recv_total_time / ((long double) 1000000000)) / ((long double) 1000) / ((long double) 1000);
 
-        // Even if we only send data, a few bytes will also be received, because of the RC-protocol,
-        // so if recv_total_time is 0, we just set it to send_total_time,
-        // so that the raw receive throughput can be calculated correctly.
-        if (recv_total_time == 0) {
-            recv_total_time = send_total_time;
-        } else if (send_total_time == 0) {
-            recv_total_time = 0;
-        }
-
-        long double send_avg_raw_throughput_mib = xmit_data_bytes / (send_total_time / ((long double) 1000000000)) /
-                                                  ((long double) 1024) / ((long double) 1024);
-
-        long double send_avg_raw_throughput_mb = xmit_data_bytes / (send_total_time / ((long double) 1000000000)) /
-                                                 ((long double) 1000) / ((long double) 1000);
-
-        long double recv_avg_raw_throughput_mib = rcv_data_bytes / (recv_total_time / ((long double) 1000000000)) /
-                                                  ((long double) 1024) / ((long double) 1024);
-
-        long double recv_avg_raw_throughput_mb = rcv_data_bytes / (recv_total_time / ((long double) 1000000000)) /
-                                                 ((long double) 1000) / ((long double) 1000);
-
-        long double send_overhead = 0;
-        long double recv_overhead = 0;
-
-        if(total_data < rcv_data_bytes) {
-            recv_overhead = rcv_data_bytes - total_data;
-        }
-
-        if(total_data < xmit_data_bytes) {
-            send_overhead = xmit_data_bytes - total_data;
-        }
-
-        long double send_overhead_percentage = send_overhead / (long double) total_data;
-        long double recv_overhead_percentage = recv_overhead / (long double) total_data;
-
         if(verbosity > 0) {
             printf("Results:\n");
             printf("  Total time: %.2Lf s\n", send_total_time / ((long double) 1000000000));
@@ -480,31 +476,6 @@ void print_results() {
                    recv_avg_throughput_mib, recv_avg_throughput_mb);
             printf("  Average combined throughput: %.2Lf MiB/s (%.2Lf MB/s)\n",
                    send_avg_throughput_mib + recv_avg_throughput_mib, send_avg_throughput_mb + recv_avg_throughput_mb);
-
-            if(show_perf_counters) {
-                printf("\nRaw statistics:\n");
-                printf("  Total packets sent: %ld\n", xmit_pkts);
-                printf("  Total packets received %ld\n", rcv_pkts);
-                printf("  Total data sent: %.2Lf MiB (%.2Lf MB)\n", xmit_data_bytes /
-                                                                    ((long double) 1024) / ((long double) 1024),
-                       xmit_data_bytes / ((long double) 1000) / ((long double) 1000));
-                printf("  Total data received: %.2Lf MiB (%.2Lf MB)\n", rcv_data_bytes /
-                                                                        ((long double) 1024) / ((long double) 1024),
-                       rcv_data_bytes / ((long double) 1000) / ((long double) 1000));
-                printf("  Send overhead: %.2Lf MiB (%.2Lf MB), %.2Lf%%\n", send_overhead /
-                                                                ((long double) 1024) / ((long double) 1024),
-                        send_overhead / ((long double) 1000) / ((long double) 1000), send_overhead_percentage * 100);
-                printf("  Receive overhead: %.2Lf MiB (%.2Lf MB), %.2Lf%%\n", recv_overhead /
-                                                                ((long double) 1024) / ((long double) 1024),
-                       recv_overhead / ((long double) 1000) / ((long double) 1000), recv_overhead_percentage * 100);
-                printf("  Average send throughput:     %.2Lf MiB/s (%.2Lf MB/s)\n",
-                       send_avg_raw_throughput_mib, send_avg_raw_throughput_mb);
-                printf("  Average recv throughput:     %.2Lf MiB/s (%.2Lf MB/s)\n",
-                       recv_avg_raw_throughput_mib, recv_avg_raw_throughput_mb);
-                printf("  Average combined throughput: %.2Lf MiB/s (%.2Lf MB/s)\n",
-                       send_avg_raw_throughput_mib + recv_avg_raw_throughput_mib,
-                       send_avg_raw_throughput_mb + recv_avg_raw_throughput_mb);
-            }
         } else {
             send_total_time = *send_time_in_nanos;
 
@@ -516,20 +487,59 @@ void print_results() {
             printf("%Lf\n", send_avg_throughput_mb);
             printf("%Lf\n", recv_avg_throughput_mb);
             printf("%Lf\n", send_avg_throughput_mb + recv_avg_throughput_mb);
+        }
+    }
 
-            if(show_perf_counters) {
-                printf("%ld\n", xmit_pkts);
-                printf("%ld\n", rcv_pkts);
-                printf("%Lf\n", xmit_data_bytes / ((long double) 1024) / ((long double) 1024));
-                printf("%Lf\n", rcv_data_bytes / ((long double) 1024) / ((long double) 1024));
-                printf("%Lf\n", send_overhead / ((long double) 1024) / ((long double) 1024) );
-                printf("%Lf\n", send_overhead_percentage * 100);
-                printf("%Lf\n", recv_overhead / ((long double) 1024) / ((long double) 1024) );
-                printf("%Lf\n", recv_overhead_percentage * 100);
-                printf("%Lf\n", send_avg_raw_throughput_mb);
-                printf("%Lf\n", recv_avg_raw_throughput_mb);
-                printf("%Lf\n", send_avg_raw_throughput_mb + recv_avg_raw_throughput_mb);
-            }
+    long double send_avg_raw_throughput_mib = xmit_data_bytes / (send_total_time / ((long double) 1000000000)) /
+                                                ((long double) 1024) / ((long double) 1024);
+
+    long double send_avg_raw_throughput_mb = xmit_data_bytes / (send_total_time / ((long double) 1000000000)) /
+                                                ((long double) 1000) / ((long double) 1000);
+
+    long double recv_avg_raw_throughput_mib = rcv_data_bytes / (recv_total_time / ((long double) 1000000000)) /
+                                                ((long double) 1024) / ((long double) 1024);
+
+    long double recv_avg_raw_throughput_mb = rcv_data_bytes / (recv_total_time / ((long double) 1000000000)) /
+                                                ((long double) 1000) / ((long double) 1000);
+
+    if(verbosity > 0) {
+        if(show_perf_counters) {
+            printf("\nRaw statistics:\n");
+            printf("  Total packets sent: %ld\n", xmit_pkts);
+            printf("  Total packets received %ld\n", rcv_pkts);
+            printf("  Total data sent: %.2Lf MiB (%.2Lf MB)\n", xmit_data_bytes /
+                                                                ((long double) 1024) / ((long double) 1024),
+                    xmit_data_bytes / ((long double) 1000) / ((long double) 1000));
+            printf("  Total data received: %.2Lf MiB (%.2Lf MB)\n", rcv_data_bytes /
+                                                                    ((long double) 1024) / ((long double) 1024),
+                    rcv_data_bytes / ((long double) 1000) / ((long double) 1000));
+            printf("  Send overhead: %.2Lf MiB (%.2Lf MB), %.2Lf%%\n", send_overhead /
+                                                            ((long double) 1024) / ((long double) 1024),
+                    send_overhead / ((long double) 1000) / ((long double) 1000), send_overhead_percentage * 100);
+            printf("  Receive overhead: %.2Lf MiB (%.2Lf MB), %.2Lf%%\n", recv_overhead /
+                                                            ((long double) 1024) / ((long double) 1024),
+                    recv_overhead / ((long double) 1000) / ((long double) 1000), recv_overhead_percentage * 100);
+            printf("  Average send throughput:     %.2Lf MiB/s (%.2Lf MB/s)\n",
+                    send_avg_raw_throughput_mib, send_avg_raw_throughput_mb);
+            printf("  Average recv throughput:     %.2Lf MiB/s (%.2Lf MB/s)\n",
+                    recv_avg_raw_throughput_mib, recv_avg_raw_throughput_mb);
+            printf("  Average combined throughput: %.2Lf MiB/s (%.2Lf MB/s)\n",
+                    send_avg_raw_throughput_mib + recv_avg_raw_throughput_mib,
+                    send_avg_raw_throughput_mb + recv_avg_raw_throughput_mb);
+        }
+    } else {
+        if(show_perf_counters) {
+            printf("%ld\n", xmit_pkts);
+            printf("%ld\n", rcv_pkts);
+            printf("%Lf\n", xmit_data_bytes / ((long double) 1024) / ((long double) 1024));
+            printf("%Lf\n", rcv_data_bytes / ((long double) 1024) / ((long double) 1024));
+            printf("%Lf\n", send_overhead / ((long double) 1024) / ((long double) 1024) );
+            printf("%Lf\n", send_overhead_percentage * 100);
+            printf("%Lf\n", recv_overhead / ((long double) 1024) / ((long double) 1024) );
+            printf("%Lf\n", recv_overhead_percentage * 100);
+            printf("%Lf\n", send_avg_raw_throughput_mb);
+            printf("%Lf\n", recv_avg_raw_throughput_mb);
+            printf("%Lf\n", send_avg_raw_throughput_mb + recv_avg_raw_throughput_mb);
         }
     }
 }
