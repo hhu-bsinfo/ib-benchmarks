@@ -344,12 +344,22 @@ public class JSocketBench {
      * Print the benchmark results.
      */
     private void printResults() {
+        long totalData = messageCount * bufSize;
         double sendTimeSec = (double) benchmarks.getSendTime() / 1000000000.0;
         double recvTimeSec = (double)  benchmarks.getRecvTime() / 1000000000.0;
         Stats stats = benchmarks.getStatistics();
 
         double sendPktsRate = (messageCount / sendTimeSec / ((double) 1000000));
         double recvPktsRate = recvTimeSec == 0 ? 0 : (messageCount / recvTimeSec / ((double) 1000000));
+
+        // Even if we only send data, a few bytes will also be received, because of the RC-protocol,
+        // so if recvTime is 0, we just set it to sendTime,
+        // so that the raw receive throughput can be calculated correctly.
+        if (recvTimeSec == 0) {
+            recvTimeSec = sendTimeSec;
+        } else if (sendTimeSec == 0) {
+            recvTimeSec = 0;
+        }
 
         if(benchmark == BENCHMARK.PINGPONG || benchmark == BENCHMARK.LATENCY) {
             // First, sort results to allow determining percentiles
@@ -362,6 +372,20 @@ public class JSocketBench {
             double p99 = stats.getPercentilesUs(0.99f);
             double p999 = stats.getPercentilesUs(0.999f);
             double p9999 = stats.getPercentilesUs(0.9999f);
+
+            double sendOverhead = 0;
+            double recvOverhead = 0;
+
+            if(perfCounterMode != PERF_COUNTER_MODE.OFF && totalData < perfCounter.getXmitDataBytes()) {
+                sendOverhead = perfCounter.getXmitDataBytes() - totalData;
+            }
+
+            if(perfCounterMode != PERF_COUNTER_MODE.OFF && totalData < perfCounter.getRcvDataBytes()) {
+                recvOverhead = perfCounter.getRcvDataBytes() - totalData;
+            }
+
+            double sendOverheadPercentage = sendOverhead / (double) totalData;
+            double recvOverheadPercentage = recvOverhead / (double) totalData;
 
             if(Log.VERBOSITY > 0) {
                 System.out.printf("Results:\n");
@@ -383,11 +407,8 @@ public class JSocketBench {
                 System.out.printf("%f\n", p99);
                 System.out.printf("%f\n", p999);
                 System.out.printf("%f\n", p9999);
-                System.out.printf("%f\n", sendPktsRate);
             }
         } else {
-            long totalData = messageCount * bufSize;
-
             double sendAvgThroughputMib = totalData / sendTimeSec / ((double) 1024) / ((double) 1024);
 
             double sendAvgThroughputMb = totalData / sendTimeSec / ((double) 1000) / ((double) 1000);
@@ -397,45 +418,6 @@ public class JSocketBench {
 
             double recvAvgThroughputMb = recvTimeSec == 0 ? 0 : totalData /
                     recvTimeSec / ((double) 1000) / ((double) 1000);
-
-            // Even if we only send data, a few bytes will also be received, because of the RC-protocol,
-            // so if recvTime is 0, we just set it to sendTime,
-            // so that the raw receive throughput can be calculated correctly.
-            if (recvTimeSec == 0) {
-                recvTimeSec = sendTimeSec;
-            } else if (sendTimeSec == 0) {
-                recvTimeSec = 0;
-            }
-            
-            double sendAvgRawThroughputMib = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
-                    perfCounter.getXmitDataBytes() / sendTimeSec /
-                            ((double) 1024) / ((double) 1024);
-
-            double sendAvgRawThroughputMb = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
-                    perfCounter.getXmitDataBytes() / sendTimeSec /
-                            ((double) 1000) / ((double) 1000);
-
-            double recvAvgRawThroughputMib = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
-                    perfCounter.getRcvDataBytes() / recvTimeSec /
-                            ((double) 1024) / ((double) 1024);
-
-            double recvAvgRawThroughputMb = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
-                    perfCounter.getRcvDataBytes() / recvTimeSec /
-                            ((double) 1000) / ((double) 1000);
-
-            double sendOverhead = 0;
-            double recvOverhead = 0;
-
-            if(perfCounterMode != PERF_COUNTER_MODE.OFF && totalData < perfCounter.getXmitDataBytes()) {
-                sendOverhead = perfCounter.getXmitDataBytes() - totalData;
-            }
-
-            if(perfCounterMode != PERF_COUNTER_MODE.OFF && totalData < perfCounter.getRcvDataBytes()) {
-                recvOverhead = perfCounter.getRcvDataBytes() - totalData;
-            }
-
-            double sendOverheadPercentage = sendOverhead / (double) totalData;
-            double recvOverheadPercentage = recvOverhead / (double) totalData;
 
             if (Log.VERBOSITY > 0) {
                 System.out.print("Results:\n");
@@ -455,7 +437,49 @@ public class JSocketBench {
                         recvAvgThroughputMib, recvAvgThroughputMb);
                 System.out.printf("  Average combined throughput: %.2f MiB/s (%.2f MB/s)\n",
                         sendAvgThroughputMib + recvAvgThroughputMib, sendAvgThroughputMb + recvAvgThroughputMb);
+            } else {
+                System.out.printf("%f\n", sendTimeSec);
+                System.out.printf("%f\n", totalData / ((double) 1024) / ((double) 1024));
+                System.out.printf("%f\n", sendPktsRate);
+                System.out.printf("%f\n", recvPktsRate);
+                System.out.printf("%f\n", sendPktsRate + recvPktsRate);
+                System.out.printf("%f\n", sendAvgThroughputMb);
+                System.out.printf("%f\n", recvAvgThroughputMb);
+                System.out.printf("%f\n", sendAvgThroughputMb + recvAvgThroughputMb);
+            }
+        }
 
+        double sendAvgRawThroughputMib = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
+                perfCounter.getXmitDataBytes() / sendTimeSec /
+                        ((double) 1024) / ((double) 1024);
+
+        double sendAvgRawThroughputMb = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
+                perfCounter.getXmitDataBytes() / sendTimeSec /
+                        ((double) 1000) / ((double) 1000);
+
+        double recvAvgRawThroughputMib = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
+                perfCounter.getRcvDataBytes() / recvTimeSec /
+                        ((double) 1024) / ((double) 1024);
+
+        double recvAvgRawThroughputMb = perfCounterMode == PERF_COUNTER_MODE.OFF ? 0 :
+                perfCounter.getRcvDataBytes() / recvTimeSec /
+                        ((double) 1000) / ((double) 1000);
+
+        double sendOverhead = 0;
+        double recvOverhead = 0;
+
+        if(perfCounterMode != PERF_COUNTER_MODE.OFF && totalData < perfCounter.getXmitDataBytes()) {
+            sendOverhead = perfCounter.getXmitDataBytes() - totalData;
+        }
+
+        if(perfCounterMode != PERF_COUNTER_MODE.OFF && totalData < perfCounter.getRcvDataBytes()) {
+            recvOverhead = perfCounter.getRcvDataBytes() - totalData;
+        }
+
+        double sendOverheadPercentage = sendOverhead / (double) totalData;
+        double recvOverheadPercentage = recvOverhead / (double) totalData;
+
+            if (Log.VERBOSITY > 0) {
                 if(perfCounterMode != PERF_COUNTER_MODE.OFF) {
                     System.out.print("\nRaw statistics:\n");
                     System.out.printf("  Total packets sent: %d\n", perfCounter.getXmitPkts());
@@ -487,18 +511,9 @@ public class JSocketBench {
                             sendAvgRawThroughputMb + recvAvgRawThroughputMb);
                 }
             } else {
-                System.out.printf("%f\n", sendTimeSec);
-                System.out.printf("%f\n", totalData / ((double) 1024) / ((double) 1024));
-                System.out.printf("%f\n", sendPktsRate);
-                System.out.printf("%f\n", recvPktsRate);
-                System.out.printf("%f\n", sendPktsRate + recvPktsRate);
-                System.out.printf("%f\n", sendAvgThroughputMb);
-                System.out.printf("%f\n", recvAvgThroughputMb);
-                System.out.printf("%f\n", sendAvgThroughputMb + recvAvgThroughputMb);
-
                 if(perfCounterMode != PERF_COUNTER_MODE.OFF) {
                     System.out.printf("%d\n", perfCounter.getXmitPkts());
-                    System.out.printf("%d\n", perfCounter.getXmitPkts());
+                    System.out.printf("%d\n", perfCounter.getRcvPkts());
                     System.out.printf("%f\n", perfCounter.getXmitDataBytes() / ((double) 1024) / ((double) 1024));
                     System.out.printf("%f\n", perfCounter.getRcvDataBytes() / ((double) 1024) / ((double) 1024));
                     System.out.printf("%f\n", sendOverhead / ((double) 1024) / ((double) 1024) );
@@ -510,7 +525,6 @@ public class JSocketBench {
                     System.out.printf("%f\n", sendAvgRawThroughputMb + recvAvgRawThroughputMb);
                 }
             }
-        }
     }
 
     /**
