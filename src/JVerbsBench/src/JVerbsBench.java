@@ -347,6 +347,12 @@ public class JVerbsBench {
                 } else {
                     sendThread = new Thread(() -> benchmarks.rdmaWriteLatencyBenchmarkClient(connection, messageCount));
                 }
+            } else if(transport == TRANSPORT.RDMAR) {
+                if(mode == MODE.SERVER) {
+                    sendThread = new Thread(() -> benchmarks.rdmaReadLatencyBenchmarkServer(connection, messageCount));
+                } else {
+                    sendThread = new Thread(() -> benchmarks.rdmaReadLatencyBenchmarkClient(connection, messageCount));
+                }
             } else {
                 sendThread = null;
             }
@@ -435,7 +441,7 @@ public class JVerbsBench {
 
         if(benchmark == BENCHMARK.PINGPONG || benchmark == BENCHMARK.LATENCY) {
             double sendTimeSec = (double) benchmarks.getSendTime() / 1000000000.0;
-            double recvTimeSec = (double)  benchmarks.getRecvTime() / 1000000000.0;
+            double recvTimeSec = (double) benchmarks.getRecvTime() / 1000000000.0;
 
             double sendPktsRate = (messageCount / sendTimeSec / ((double) 1000000));
 
@@ -607,7 +613,7 @@ public class JVerbsBench {
      * @param path The library's path inside tje .jar-file
      */
     private static void loadNativeLibraryFromJar(String path) throws IOException {
-        File tmpDir = Files.createTempDirectory("JSocketBench-native").toFile();
+        File tmpDir = Files.createTempDirectory("JVerbsBench-native").toFile();
         tmpDir.deleteOnExit();
 
         File nativeLibTmpFile = new File(tmpDir, path);
