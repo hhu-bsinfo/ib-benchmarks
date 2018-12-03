@@ -659,9 +659,12 @@ if [ "$PROCESS_RESULTS_ONLY" != "1" ]; then
     # jVerbs (IBM JVM)
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
+    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdmar"
+    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdmar"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "pingpong" "msg"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "msg"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "rdma"
+    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "rdmar"
 
     # JSOR (IBM JVM)
     run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"

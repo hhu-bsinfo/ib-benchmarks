@@ -715,6 +715,103 @@ class Benchmarks {
     }
 
     /**
+     * Start the RDMA read latency benchmark as server
+     *
+     * The measured time in nanoseconds is stored in sendTime.
+     *
+     * @param connection The connection to use for the benchmarks
+     * @param msgCount The amount of message to send and receive
+     */
+    void rdmaReadLatencyBenchmarkServer(Connection connection, long msgCount) {
+        long startTime = 0;
+        long endTime = 0;
+
+        int polled;
+
+        Log.INFO("SERVER THREAD", "Starting RDMA read latency server thread!");
+
+        stats = new Stats((int) msgCount);
+
+        try {
+            startTime = System.nanoTime();
+
+            while(msgCount > 0) {
+                stats.start();
+
+                // Read a single message and wait until a work completion is generated
+                connection.rdmaRead(1);
+
+                do {
+                    polled = connection.pollCompletionQueue(JVerbsWrapper.CqType.SEND_CQ);
+                } while(polled == 0);
+
+                stats.stop();
+
+                msgCount--;
+            }
+
+            endTime = System.nanoTime();
+        } catch(Exception e) {
+            Log.ERROR_AND_EXIT("SERVER THREAD", "An error occurred, while sending or receiving a message!" +
+                    " Error: '%s'", e.getMessage());
+        }
+
+        Log.INFO("SERVER THREAD", "Finished RDMA write latency test!");
+
+        sendTime = endTime - startTime;
+
+        Log.INFO("SEND THREAD", "Sending 'close'-command to remote host.");
+
+        try {
+            DataOutputStream outStream = new DataOutputStream(connection.getSocket().getOutputStream());
+
+            outStream.write("close".getBytes());
+        } catch (Exception e) {
+            Log.ERROR_AND_EXIT("SEND THREAD", "An error occurred, while sending 'close'! Error: '%s'",
+                    e.getMessage());
+        }
+
+        Log.INFO("SERVER THREAD", "Terminating thread...");
+    }
+
+    /**
+     * Start the RDMA read latency benchmark as client
+     *
+     * The measured time in nanoseconds is stored in sendTime.
+     *
+     * @param connection The connection to use for the benchmarks
+     * @param msgCount The amount of message to send and receive
+     */
+    void rdmaReadLatencyBenchmarkClient(Connection connection, long msgCount) {
+        long startTime = 0;
+        long endTime = 0;
+
+        int polled;
+        byte[] buf = new byte[5];
+
+        Log.INFO("CLIENT THREAD", "Starting RDMA read latency client thread!");
+
+        startTime = System.nanoTime();
+
+        try {
+            DataInputStream inStream = new DataInputStream(connection.getSocket().getInputStream());
+
+            inStream.readFully(buf);
+        } catch (Exception e) {
+            Log.ERROR_AND_EXIT("CLIENT THREAD", "An error occurred, while receiving 'close'! Error: '%s'",
+                    e.getMessage());
+        }
+
+        endTime = System.nanoTime();
+
+        Log.INFO("CLIENT THREAD", "Finished RDMA read latency test!");
+
+        sendTime = endTime - startTime;
+
+        Log.INFO("CLIENT THREAD", "Terminating thread...");
+    }
+
+    /**
      * Get the measured send time.
      */
     long getSendTime() {
