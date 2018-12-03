@@ -213,8 +213,17 @@ benchmark()
         mkdir -p "${outpath}/${benchmark}_lat_999/"
         mkdir -p "${outpath}/${benchmark}_lat_9999/"
         mkdir -p "${outpath}/${benchmark}_tp_pkt_send/"
+
+        mkdir -p "${outpath}/${benchmark}_overhead_send/"
+        mkdir -p "${outpath}/${benchmark}_overhead_recv/"
+        mkdir -p "${outpath}/${benchmark}_overhead_perc_send/"
+        mkdir -p "${outpath}/${benchmark}_overhead_perc_recv/"
+        mkdir -p "${outpath}/${benchmark}_tp_raw_send/"
+        mkdir -p "${outpath}/${benchmark}_tp_raw_recv/"
+        mkdir -p "${outpath}/${benchmark}_tp_raw_combined/"
         
         local avg_lat min_lat max_lat lat_95 lat_99 lat_999 lat_9999 pkts_tp;
+        local send_overhead send_overhead_perc recv_overhead recv_overhead_perc;
 
         avg_lat=$(echo "${output}" | sed '2q;d')
         min_lat=$(echo "${output}" | sed '3q;d')
@@ -225,39 +234,6 @@ benchmark()
         lat_9999=$(echo "${output}" | sed '8q;d')
         pkts_tp=$(echo "${output}" | sed '9q;d')
 
-        echo -e "${avg_lat}" >> "${outpath}/${benchmark}_lat_avg/${name}(${transport}).csv"
-        echo -e "${min_lat}" >> "${outpath}/${benchmark}_lat_min/${name}(${transport}).csv"
-        echo -e "${max_lat}" >> "${outpath}/${benchmark}_lat_max/${name}(${transport}).csv"
-        echo -e "${lat_95}" >> "${outpath}/${benchmark}_lat_95/${name}(${transport}).csv"
-        echo -e "${lat_99}" >> "${outpath}/${benchmark}_lat_99/${name}(${transport}).csv"
-        echo -e "${lat_999}" >> "${outpath}/${benchmark}_lat_999/${name}(${transport}).csv"
-        echo -e "${lat_9999}" >> "${outpath}/${benchmark}_lat_9999/${name}(${transport}).csv"
-        echo -e "${pkts_tp}" >> "${outpath}/${benchmark}_tp_pkt_send/${name}(${transport}).csv"
-    # Throughput on all other benchmarks
-    elif [ "${MODE}" = "server" ]; then
-        mkdir -p "${outpath}/${benchmark}_tp_pkt_send/"
-        mkdir -p "${outpath}/${benchmark}_tp_pkt_recv/"
-        mkdir -p "${outpath}/${benchmark}_tp_pkt_combined/"
-        mkdir -p "${outpath}/${benchmark}_tp_data_send/"
-        mkdir -p "${outpath}/${benchmark}_tp_data_recv/"
-        mkdir -p "${outpath}/${benchmark}_tp_data_combined/"
-        mkdir -p "${outpath}/${benchmark}_overhead_send/"
-        mkdir -p "${outpath}/${benchmark}_overhead_recv/"
-        mkdir -p "${outpath}/${benchmark}_overhead_perc_send/"
-        mkdir -p "${outpath}/${benchmark}_overhead_perc_recv/"
-        mkdir -p "${outpath}/${benchmark}_tp_raw_send/"
-        mkdir -p "${outpath}/${benchmark}_tp_raw_recv/"
-        mkdir -p "${outpath}/${benchmark}_tp_raw_combined/"
-        
-        local send_pkts_tp recv_pkts_tp combined_pkts_tp send_tp recv_tp combined_tp send_lat send_overhead;
-        local send_overhead_perc recv_overhead recv_overhead_perc send_raw_tp recv_raw_tp combined_raw_tp;
-
-        send_pkts_tp=$(echo "${output}" | sed '3q;d')
-        recv_pkts_tp=$(echo "${output}" | sed '4q;d')
-        combined_pkts_tp=$(echo "${output}" | sed '5q;d')
-        send_tp=$(echo "${output}" | sed '6q;d')
-        recv_tp=$(echo "${output}" | sed '7q;d')
-        combined_tp=$(echo "${output}" | sed '8q;d')
         send_overhead=$(echo "${output}" | sed '14q;d')
         send_overhead_perc=$(echo "${output}" | sed '15q;d')
         recv_overhead=$(echo "${output}" | sed '16q;d')
@@ -266,12 +242,65 @@ benchmark()
         recv_raw_tp=$(echo "${output}" | sed '19q;d')
         combined_raw_tp=$(echo "${output}" | sed '20q;d')
 
+        echo -e "${avg_lat}" >> "${outpath}/${benchmark}_lat_avg/${name}(${transport}).csv"
+        echo -e "${min_lat}" >> "${outpath}/${benchmark}_lat_min/${name}(${transport}).csv"
+        echo -e "${max_lat}" >> "${outpath}/${benchmark}_lat_max/${name}(${transport}).csv"
+        echo -e "${lat_95}" >> "${outpath}/${benchmark}_lat_95/${name}(${transport}).csv"
+        echo -e "${lat_99}" >> "${outpath}/${benchmark}_lat_99/${name}(${transport}).csv"
+        echo -e "${lat_999}" >> "${outpath}/${benchmark}_lat_999/${name}(${transport}).csv"
+        echo -e "${lat_9999}" >> "${outpath}/${benchmark}_lat_9999/${name}(${transport}).csv"
+        echo -e "${pkts_tp}" >> "${outpath}/${benchmark}_tp_pkt_send/${name}(${transport}).csv"
+
+        echo -e "${send_overhead}" >> "${outpath}/${benchmark}_overhead_send/${name}(${transport}).csv"
+        echo -e "${recv_overhead}" >> "${outpath}/${benchmark}_overhead_recv/${name}(${transport}).csv"
+        echo -e "${send_overhead_perc}" >> "${outpath}/${benchmark}_overhead_perc_send/${name}(${transport}).csv"
+        echo -e "${recv_overhead_perc}" >> "${outpath}/${benchmark}_overhead_perc_recv/${name}(${transport}).csv"
+        echo -e "${send_raw_tp}" >> "${outpath}/${benchmark}_tp_raw_send/${name}(${transport}).csv"
+        echo -e "${recv_raw_tp}" >> "${outpath}/${benchmark}_tp_raw_recv/${name}(${transport}).csv"
+        echo -e "${combined_raw_tp}" >> "${outpath}/${benchmark}_tp_raw_combined/${name}(${transport}).csv"
+    # Throughput on all other benchmarks
+    elif [ "${MODE}" = "server" ]; then
+        mkdir -p "${outpath}/${benchmark}_tp_pkt_send/"
+        mkdir -p "${outpath}/${benchmark}_tp_pkt_recv/"
+        mkdir -p "${outpath}/${benchmark}_tp_pkt_combined/"
+        mkdir -p "${outpath}/${benchmark}_tp_data_send/"
+        mkdir -p "${outpath}/${benchmark}_tp_data_recv/"
+        mkdir -p "${outpath}/${benchmark}_tp_data_combined/"
+
+        mkdir -p "${outpath}/${benchmark}_overhead_send/"
+        mkdir -p "${outpath}/${benchmark}_overhead_recv/"
+        mkdir -p "${outpath}/${benchmark}_overhead_perc_send/"
+        mkdir -p "${outpath}/${benchmark}_overhead_perc_recv/"
+        mkdir -p "${outpath}/${benchmark}_tp_raw_send/"
+        mkdir -p "${outpath}/${benchmark}_tp_raw_recv/"
+        mkdir -p "${outpath}/${benchmark}_tp_raw_combined/"
+        
+        local send_pkts_tp recv_pkts_tp combined_pkts_tp send_tp recv_tp combined_tp send_lat;
+        local send_overhead send_overhead_perc recv_overhead recv_overhead_perc;
+        local send_raw_tp recv_raw_tp combined_raw_tp;
+
+        send_pkts_tp=$(echo "${output}" | sed '3q;d')
+        recv_pkts_tp=$(echo "${output}" | sed '4q;d')
+        combined_pkts_tp=$(echo "${output}" | sed '5q;d')
+        send_tp=$(echo "${output}" | sed '6q;d')
+        recv_tp=$(echo "${output}" | sed '7q;d')
+        combined_tp=$(echo "${output}" | sed '8q;d')
+
+        send_overhead=$(echo "${output}" | sed '13q;d')
+        send_overhead_perc=$(echo "${output}" | sed '14q;d')
+        recv_overhead=$(echo "${output}" | sed '15q;d')
+        recv_overhead_perc=$(echo "${output}" | sed '16q;d')
+        send_raw_tp=$(echo "${output}" | sed '17q;d')
+        recv_raw_tp=$(echo "${output}" | sed '18q;d')
+        combined_raw_tp=$(echo "${output}" | sed '19q;d')
+
         echo -e "${send_pkts_tp}" >> "${outpath}/${benchmark}_tp_pkt_send/${name}(${transport}).csv"
         echo -e "${recv_pkts_tp}" >> "${outpath}/${benchmark}_tp_pkt_recv/${name}(${transport}).csv"
         echo -e "${combined_pkts_tp}" >> "${outpath}/${benchmark}_tp_pkt_combined/${name}(${transport}).csv"
         echo -e "${send_tp}" >> "${outpath}/${benchmark}_tp_data_send/${name}(${transport}).csv"
         echo -e "${recv_tp}" >> "${outpath}/${benchmark}_tp_data_recv/${name}(${transport}).csv"
         echo -e "${combined_tp}" >> "${outpath}/${benchmark}_tp_data_combined/${name}(${transport}).csv"
+
         echo -e "${send_overhead}" >> "${outpath}/${benchmark}_overhead_send/${name}(${transport}).csv"
         echo -e "${recv_overhead}" >> "${outpath}/${benchmark}_overhead_recv/${name}(${transport}).csv"
         echo -e "${send_overhead_perc}" >> "${outpath}/${benchmark}_overhead_perc_send/${name}(${transport}).csv"
