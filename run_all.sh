@@ -356,8 +356,8 @@ perftest_benchmark() {
             mkdir -p "${outpath}/${benchmark}_tp_pkt_send/"
             mkdir -p "${outpath}/${benchmark}_tp_data_send/"
 
-            echo -e "${results[3]}" >> "${outpath}/${benchmark}_tp_pkt_send/${name}(${transport}).csv"
-            echo -e "${results[4]}" >> "${outpath}/${benchmark}_tp_data_send/${name}(${transport}).csv"
+            echo -e "${results[3]}" >> "${outpath}/${benchmark}_tp_data_send/${name}(${transport}).csv"
+            echo -e "${results[4]}" >> "${outpath}/${benchmark}_tp_pkt_send/${name}(${transport}).csv"
         fi
     else
         LOG_INFO "Waiting for server to become ready..."
@@ -369,12 +369,6 @@ perftest_benchmark() {
         sleep 1s
         printf "\\n"
     fi
-}
-
-wait()
-{
-    LOG_INFO "Waiting 1 minute for ports to be available again..."
-    sleep 60
 }
 
 run_benchmark_series()
@@ -398,11 +392,9 @@ run_benchmark_series()
         fi
         
         benchmark "${name}" "results/1" "${cmd}" "${benchmark}" "${transport}" "${size}" "${count}" "$((8000+i))"
-        benchmark "${name}" "results/2" "${cmd}" "${benchmark}" "${transport}" "${size}" "${count}" "$((8020+i))"
-        benchmark "${name}" "results/3" "${cmd}" "${benchmark}" "${transport}" "${size}" "${count}" "$((8040+i))"
+        benchmark "${name}" "results/2" "${cmd}" "${benchmark}" "${transport}" "${size}" "${count}" "$((8021+i))"
+        benchmark "${name}" "results/3" "${cmd}" "${benchmark}" "${transport}" "${size}" "${count}" "$((8042+i))"
     done
-
-    wait
 }
 
 run_perftest_series()
@@ -425,8 +417,8 @@ run_perftest_series()
         fi
         
         perftest_benchmark "${name}" "results/1" "${benchmark}" "${transport}" "${size}" "${count}" "$((8000+i))"
-        perftest_benchmark "${name}" "results/2" "${benchmark}" "${transport}" "${size}" "${count}" "$((8020+i))"
-        perftest_benchmark "${name}" "results/3" "${benchmark}" "${transport}" "${size}" "${count}" "$((8040+i))"
+        perftest_benchmark "${name}" "results/2" "${benchmark}" "${transport}" "${size}" "${count}" "$((8021+i))"
+        perftest_benchmark "${name}" "results/3" "${benchmark}" "${transport}" "${size}" "${count}" "$((8042+i))"
     done
 }
 
