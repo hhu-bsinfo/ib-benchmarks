@@ -331,8 +331,8 @@ perftest_benchmark() {
         params+=("-b")
     fi
 
-    LOG_INFO "Running '%s ${params[*]}'..." "${name}"
-    eval "${name} ${params[*]}" > "${MODE}_tmp.log" 2>&1
+    LOG_INFO "Running 'sudo %s ${params[*]}'..." "${name}"
+    eval "sudo ${name} ${params[*]}" > "${MODE}_tmp.log" 2>&1
 
     if [ $? -eq 0 ]; then
         LOG_INFO "Benchmark exited successfully!\\n"
