@@ -5,6 +5,7 @@ readonly GIT_BRANCH="$(git rev-parse --symbolic-full-name --abbrev-ref HEAD 2>/d
 readonly GIT_REV="$(git rev-parse --short HEAD 2>/dev/null)"
 readonly DATE="$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null)"
 
+RESULTS_OUTPATH="results"
 JAVA_PATH="java"
 J9_JAVA_PATH="java"
 LIBVMA_PATH="libvma.so"
@@ -49,6 +50,9 @@ parse_args()
         local val=$2
 
         case $arg in
+            -o|--output)
+            RESULTS_OUTPATH=$val
+            ;;
             -j|--java)
             JAVA_PATH=$val
             ;;
@@ -182,9 +186,15 @@ benchmark()
     
     LOG_INFO "Running '%s ${params[*]}'..." "${cmd}"
 
-    eval "${cmd} ${params[*]}" > ./${MODE}_tmp.log 2>&1
-  
-    local output="$(cat ./${MODE}_tmp.log)"
+    # Keep log output files of all benchmarks
+    mkdir -p "${outpath}/logfiles"
+
+    local logfile="${outpath}/logfiles/${name}_${benchmark}_${transport}_${size}_${MODE}.log"
+    touch $logfile
+
+    eval "${cmd} ${params[*]}" > $logfile 2>&1
+
+    local output="$(cat $logfile)"
 
     if [[ $output = *"ERROR"* ]]; then
         printf "%s" "${output}"
@@ -331,8 +341,13 @@ perftest_benchmark() {
         params+=("-b")
     fi
 
+    # Keep log output files of all benchmarks
+    mkdir -p "${outpath}/logfiles"
+
+    local logfile="${outpath}/logfiles/${name}_${benchmark}_${transport}_${size}_${MODE}.log"
+
     LOG_INFO "Running 'sudo %s ${params[*]}'..." "${name}"
-    eval "sudo ${name} ${params[*]}" > "${MODE}_tmp.log" 2>&1
+    eval "sudo ${name} ${params[*]}" > "$logfile" 2>&1
 
     if [ $? -eq 0 ]; then
         LOG_INFO "Benchmark exited successfully!\\n"
@@ -341,7 +356,7 @@ perftest_benchmark() {
     fi
 
     local results
-    read -r -a results <<< $(cat "${MODE}_tmp.log" | tail -n 2 | head -n 1)
+    read -r -a results <<< $(cat "$logfile" | tail -n 2 | head -n 1)
 
     if [ "${MODE}" = "server" ]; then
         if [ "${benchmark}" = "latency" ]; then
@@ -382,6 +397,14 @@ run_benchmark_series()
         local size=$((2**i))
         local count=100000000
 
+        # For some currently unknown reason, jverbs msg uni and bidirectional is very slow. 
+        # Reduce number of messages to avoid running for days.
+        if [ "$name" = "JVerbsBench" ] && [ "$transport" = "msg" ]; then
+            if [ "$benchmark" = "unidirectional" ] || [ "$benchmark" = "bidirectional" ]; then
+                count=1000000
+            fi
+        fi 
+
         # Reduce message count to avoid unncessary long running benchmarks
         if [ "$benchmark" = "pingpong" ] || [ "$benchmark" = "latency" ]; then
             count=10000000
@@ -391,9 +414,9 @@ run_benchmark_series()
             count=$((count/$((2**$((i-12))))))
         fi
         
-        benchmark "${name}" "results/1" "${cmd}" "${benchmark}" "${transport}" "${size}" "${count}" "$((8000+i))"
-        benchmark "${name}" "results/2" "${cmd}" "${benchmark}" "${transport}" "${size}" "${count}" "$((8021+i))"
-        benchmark "${name}" "results/3" "${cmd}" "${benchmark}" "${transport}" "${size}" "${count}" "$((8042+i))"
+        benchmark "${name}" "$RESULTS_OUTPATH/1" "${cmd}" "${benchmark}" "${transport}" "${size}" "${count}" "$((8000+i))"
+        benchmark "${name}" "$RESULTS_OUTPATH/2" "${cmd}" "${benchmark}" "${transport}" "${size}" "${count}" "$((8021+i))"
+        benchmark "${name}" "$RESULTS_OUTPATH/3" "${cmd}" "${benchmark}" "${transport}" "${size}" "${count}" "$((8042+i))"
     done
 }
 
@@ -416,9 +439,9 @@ run_perftest_series()
             count=$((count/$((2**$((i-12))))))
         fi
         
-        perftest_benchmark "${name}" "results/1" "${benchmark}" "${transport}" "${size}" "${count}" "$((8000+i))"
-        perftest_benchmark "${name}" "results/2" "${benchmark}" "${transport}" "${size}" "${count}" "$((8021+i))"
-        perftest_benchmark "${name}" "results/3" "${benchmark}" "${transport}" "${size}" "${count}" "$((8042+i))"
+        perftest_benchmark "${name}" "$RESULTS_OUTPATH/1" "${benchmark}" "${transport}" "${size}" "${count}" "$((8000+i))"
+        perftest_benchmark "${name}" "$RESULTS_OUTPATH/2" "${benchmark}" "${transport}" "${size}" "${count}" "$((8021+i))"
+        perftest_benchmark "${name}" "$RESULTS_OUTPATH/3" "${benchmark}" "${transport}" "${size}" "${count}" "$((8042+i))"
     done
 }
 
@@ -444,7 +467,7 @@ gen_plot_file()
             set xlabel '${xlabel}'\\n\
             set grid\\n\
             set key above\\n\
-            set xtics ('1' 0, '4' 2, '16' 4, '64' 6, '256' 8, '1K' 10, '4KiB' 12, '16KiB' 14, '64KiB' 16, '256KiB' 18, '1MiB' 20)\\n\
+            set xtics ('1' 0, '4' 2, '16' 4, '64' 6, '256' 8, '1K' 10, '4K' 12, '16K' 14, '64K' 16, '256K' 18, '1MB' 20)\\n\
             set xrange [0:20]\\n\
             set ytics nomirror\\n\
             set datafile separator ','\\n\
@@ -470,11 +493,11 @@ gen_plot_file()
                     for [i=1:words(PACKET_FILES)] word(PACKET_FILES,i) using 0:1 notitle axes x1y2 with lines lt rgb word(COLORS,i) dt 2"
     fi
     
-    if [ ! -d "results/plot/scripts" ]; then
-        mkdir -p "results/plot/scripts"
+    if [ ! -d "$RESULTS_OUTPATH/plot/scripts" ]; then
+        mkdir -p "$RESULTS_OUTPATH/plot/scripts"
     fi
 
-    echo -e "${plot}" > "results/plot/scripts/${plot_name}.plot"
+    echo -e "${plot}" > "$RESULTS_OUTPATH/plot/scripts/${plot_name}.plot"
 }
 
 values_min()
@@ -494,18 +517,20 @@ values_avg()
 
 generate_merged_values_benchmark_runs()
 {
-    mkdir -p "results/merged/"
+    mkdir -p "$RESULTS_OUTPATH/merged/"
 
-    for folder in results/1/*; do
+    for folder in $RESULTS_OUTPATH/1/*; do
         for file in "${folder}"/*; do
             for i in $(seq 0 20); do
                 local subpath first second third sorted
 
                 subpath=$(basename "${folder}")/$(basename "${file}")
 
-                first=$(sed "$((i+1))q;d" < "results/1/${subpath}")
-                second=$(sed "$((i+1))q;d" < "results/2/${subpath}")
-                third=$(sed "$((i+1))q;d" < "results/3/${subpath}")
+                first=$(sed "$((i+1))q;d" < "$RESULTS_OUTPATH/1/${subpath}")
+                second=$(sed "$((i+1))q;d" < "$RESULTS_OUTPATH/2/${subpath}")
+                third=$(sed "$((i+1))q;d" < "$RESULTS_OUTPATH/3/${subpath}")
+
+                echo ">>> $RESULTS_OUTPATH/1/${subpath} $first $second $third"
 
                 # In order to display error bars in gnuplot correctly, we have
                 # to provide the minimum, maximum and average values
@@ -513,15 +538,15 @@ generate_merged_values_benchmark_runs()
                 max=$(values_max $first $second $third)
                 avg=$(values_avg $first $second $third)
 
-                if [ ! -d "results/merged/$(basename "${folder}")" ]; then
-                    mkdir -p "results/merged/$(basename "${folder}")"
+                if [ ! -d "$RESULTS_OUTPATH/merged/$(basename "${folder}")" ]; then
+                    mkdir -p "$RESULTS_OUTPATH/merged/$(basename "${folder}")"
                 fi
 
-                if [ ! -f "results/merged/${subpath}" ]; then
-                    touch "results/merged/${subpath}"
+                if [ ! -f "$RESULTS_OUTPATH/merged/${subpath}" ]; then
+                    touch "$RESULTS_OUTPATH/merged/${subpath}"
                 fi
 
-                echo "${avg},${min},${max}" >> "results/merged/${subpath}"
+                echo "${avg},${min},${max}" >> "$RESULTS_OUTPATH/merged/${subpath}"
             done
         done
     done
@@ -531,7 +556,7 @@ assemble_results()
 {
     LOG_INFO "Assembling results..."
 
-    #generate_merged_values_benchmark_runs
+    generate_merged_values_benchmark_runs
 
     # Notes on determining the (worst case) raw overhead:
     # Some libraries (e.g. libvma, IPoIB) use very aggressive aggregation (up to ~1000 messages)
@@ -540,25 +565,25 @@ assemble_results()
     # significantly. However, to determine the (worst case) per paket overhead, we have to do this
     # on a pingpong type benchmark which eliminates any kind of implicit aggregation.
 
-    gen_plot_file "verbs_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
-    gen_plot_file "verbs_tp_bi" "bidirectional" "tp_data_combined" "tp_pkt_combined" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
-    gen_plot_file "verbs_pp_avg" "pingpong" "lat_avg" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
-    gen_plot_file "verbs_pp_999" "pingpong" "lat_999" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
-    gen_plot_file "verbs_lat_avg" "latency" "lat_avg" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
-    gen_plot_file "verbs_lat_999" "latency" "lat_999" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
+    gen_plot_file "verbs_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [GB/s]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "verbs_tp_bi" "bidirectional" "tp_data_combined" "tp_pkt_combined" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [GB/s]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "verbs_pp_avg" "pingpong" "lat_avg" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "verbs_pp_999" "pingpong" "lat_999" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "verbs_lat_avg" "latency" "lat_avg" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "verbs_lat_999" "latency" "lat_999" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
 
-    gen_plot_file "sockets_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
-    gen_plot_file "sockets_tp_uni" "bidirectional" "tp_data_combined" "tp_pkt_combined" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
+    gen_plot_file "sockets_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [GB/s]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "sockets_tp_bi" "bidirectional" "tp_data_combined" "tp_pkt_combined" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [GB/s]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
 
-    gen_plot_file "sockets_pp_avg" "pingpong" "lat_avg" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
-    gen_plot_file "sockets_pp_999" "pingpong" "lat_999" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
-    gen_plot_file "sockets_lat_avg" "latency" "lat_avg" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
-    gen_plot_file "sockets_lat_999" "latency" "lat_999" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
+    gen_plot_file "sockets_pp_avg" "pingpong" "lat_avg" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "sockets_pp_999" "pingpong" "lat_999" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "sockets_lat_avg" "latency" "lat_avg" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "sockets_lat_999" "latency" "lat_999" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
 
-    gen_plot_file "sockets_lat_999" "latency" "lat_999" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
+    gen_plot_file "sockets_lat_999" "latency" "lat_999" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
 
-    gen_plot_file "all_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
-    gen_plot_file "all_tp_uni" "bidirectional" "tp_data_combined" "tp_pkt_combined" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
+    gen_plot_file "all_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [GB/s]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
+    gen_plot_file "all_tp_uni" "bidirectional" "tp_data_combined" "tp_pkt_combined" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [GB/s]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
 
     gen_plot_file "all_pp_avg" "pingpong" "lat_avg" "tp_pkt_send" "CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
     gen_plot_file "all_pp_999" "pingpong" "lat_999" "tp_pkt_send" "CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
@@ -570,11 +595,11 @@ plot_all()
 {
     LOG_INFO "Generating plots..."
 
-    if [ ! -d "results/plot/output" ]; then
-        mkdir -p "results/plot/output"
+    if [ ! -d "$RESULTS_OUTPATH/plot/output" ]; then
+        mkdir -p "$RESULTS_OUTPATH/plot/output"
     fi
 
-    cd results/plot
+    cd $RESULTS_OUTPATH/plot
 
     for file in scripts/*; do
         gnuplot "$file" 
@@ -616,10 +641,6 @@ LIBVMA_CMD="sudo VMA_TRACELEVEL=0 LD_PRELOAD=${LIBVMA_PATH} ${JAVA_PATH}/bin/jav
 JSOR_CMD="IBM_JAVA_RDMA_SBUF_SIZE=1048576 IBM_JAVA_RDMA_RBUF_SIZE=1048576 ${J9_JAVA_PATH}/bin/java -Dcom.ibm.net.rdma.conf=src/JSocketBench/jsor_${MODE}.conf -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
 JVERBS_CMD="${J9_JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JVerbsBench/build/libs/JVerbsBench.jar"
 
-if [ "$PROCESS_RESULTS_ONLY" != "1" ]; then
-    rm -rf "results"
-fi
-
 ##################################################################
 # Benchmarks
 ##################################################################
@@ -646,6 +667,8 @@ if [ "$PROCESS_RESULTS_ONLY" != "1" ]; then
     run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "rdmar"
 
     # jVerbs (IBM JVM)
+    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "msg"
+    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "msg"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdmar"
@@ -657,6 +680,7 @@ if [ "$PROCESS_RESULTS_ONLY" != "1" ]; then
 
     # JSOR (IBM JVM)
     run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
+    # bidirectional missing: errors on small packages, does not terminate with large packages
     run_benchmark_series "JSOR" "${JSOR_CMD}" "pingpong"
     run_benchmark_series "JSOR" "${JSOR_CMD}" "latency"
 
