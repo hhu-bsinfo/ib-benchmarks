@@ -474,23 +474,30 @@ gen_plot_file()
             set terminal pdf\\n\
             set output 'output/${plot_name}_${benchmark}.pdf'\\n"
 
-    if [ "${logscale}" == "true" ]; then
-        plot+="set logscale y\\n"
-    fi
-
     # Don't plot y2 on overhead plots
     if [ "${name}" == "overhead" ]; then
         plot+="set ylabel '${y1label}'\\n\
                plot for [i=1:words(FILES)] word(FILES,i) using 0:1:2:3 title word(LABELS,i) axes x1y1 with yerrorbars lt rgb word(COLORS,i) dt i pt i, \
                     for [i=1:words(FILES)] word(FILES,i) using 0:1 notitle axes x1y1 with lines lt rgb word(COLORS,i) dt i"
     else
-        plot+="set ylabel '${y1label}'\\n\
-               set y2label '${y2label}'\\n\
-               set y2tics\\n\
-               plot for [i=1:words(FILES)] word(FILES,i) using 0:1:2:3 title word(LABELS,i) axes x1y1 with yerrorbars lt rgb word(COLORS,i) dt 1 pt i, \
-                    for [i=1:words(FILES)] word(FILES,i) using 0:1 notitle axes x1y1 with lines lt rgb word(COLORS,i) dt 1, \
-                    for [i=1:words(PACKET_FILES)] word(PACKET_FILES,i) using 0:1:2:3 notitle axes x1y2 with yerrorbars lt rgb word(COLORS,i) dt 1 pt i, \
-                    for [i=1:words(PACKET_FILES)] word(PACKET_FILES,i) using 0:1 notitle axes x1y2 with lines lt rgb word(COLORS,i) dt 2"
+        if [ "${name}" = "latency" ] || [ "${name}" = "pingpong" ]; then
+            plot+="set logscale y\\n"
+            plot+="set ylabel '${y1label}'\\n\
+                   set y2label '${y2label}'\\n\
+                   set y2tics\\n\
+                   plot for [i=1:words(FILES)] word(FILES,i) using 0:1:2:3 title word(LABELS,i) axes x1y1 with yerrorbars lt rgb word(COLORS,i) dt 1 pt i, \
+                        for [i=1:words(FILES)] word(FILES,i) using 0:1 notitle axes x1y1 with lines lt rgb word(COLORS,i) dt 1, \
+                        for [i=1:words(PACKET_FILES)] word(PACKET_FILES,i) using 0:1:2:3 notitle axes x1y2 with yerrorbars lt rgb word(COLORS,i) dt 1 pt i, \
+                        for [i=1:words(PACKET_FILES)] word(PACKET_FILES,i) using 0:1 notitle axes x1y2 with lines lt rgb word(COLORS,i) dt 2"
+        else
+            plot+="set ylabel '${y1label}'\\n\
+                   set y2label '${y2label}'\\n\
+                   set y2tics\\n\
+                   plot for [i=1:words(FILES)] word(FILES,i) using 0:1:2:3 title word(LABELS,i) axes x1y2 with yerrorbars lt rgb word(COLORS,i) dt 1 pt i, \
+                        for [i=1:words(FILES)] word(FILES,i) using 0:1 notitle axes x1y2 with lines lt rgb word(COLORS,i) dt 1, \
+                        for [i=1:words(PACKET_FILES)] word(PACKET_FILES,i) using 0:1:2:3 notitle axes x1y1 with yerrorbars lt rgb word(COLORS,i) dt 1 pt i, \
+                        for [i=1:words(PACKET_FILES)] word(PACKET_FILES,i) using 0:1 notitle axes x1y1 with lines lt rgb word(COLORS,i) dt 2"
+        fi
     fi
     
     if [ ! -d "$RESULTS_OUTPATH/plot/scripts" ]; then
@@ -520,6 +527,11 @@ generate_merged_values_benchmark_runs()
     mkdir -p "$RESULTS_OUTPATH/merged/"
 
     for folder in $RESULTS_OUTPATH/1/*; do
+        # Skip logfile folder
+        if [ "$(basename $folder)" = "logfiles" ]; then
+            continue
+        fi
+
         for file in "${folder}"/*; do
             for i in $(seq 0 20); do
                 local subpath first second third sorted
@@ -529,8 +541,6 @@ generate_merged_values_benchmark_runs()
                 first=$(sed "$((i+1))q;d" < "$RESULTS_OUTPATH/1/${subpath}")
                 second=$(sed "$((i+1))q;d" < "$RESULTS_OUTPATH/2/${subpath}")
                 third=$(sed "$((i+1))q;d" < "$RESULTS_OUTPATH/3/${subpath}")
-
-                echo ">>> $RESULTS_OUTPATH/1/${subpath} $first $second $third"
 
                 # In order to display error bars in gnuplot correctly, we have
                 # to provide the minimum, maximum and average values
@@ -565,30 +575,30 @@ assemble_results()
     # significantly. However, to determine the (worst case) per paket overhead, we have to do this
     # on a pingpong type benchmark which eliminates any kind of implicit aggregation.
 
-    gen_plot_file "verbs_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [GB/s]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
-    gen_plot_file "verbs_tp_bi" "bidirectional" "tp_data_combined" "tp_pkt_combined" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [GB/s]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
-    gen_plot_file "verbs_pp_avg" "pingpong" "lat_avg" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
-    gen_plot_file "verbs_pp_999" "pingpong" "lat_999" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
-    gen_plot_file "verbs_lat_avg" "latency" "lat_avg" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
-    gen_plot_file "verbs_lat_999" "latency" "lat_999" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "verbs_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "verbs_tp_bi" "bidirectional" "tp_data_combined" "tp_pkt_combined" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "verbs_pp_avg" "pingpong" "lat_avg" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "verbs_pp_999" "pingpong" "lat_999" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "verbs_lat_avg" "latency" "lat_avg" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "verbs_lat_999" "latency" "lat_999" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
 
-    gen_plot_file "sockets_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [GB/s]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
-    gen_plot_file "sockets_tp_bi" "bidirectional" "tp_data_combined" "tp_pkt_combined" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [GB/s]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "sockets_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "sockets_tp_bi" "bidirectional" "tp_data_combined" "tp_pkt_combined" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
 
-    gen_plot_file "sockets_pp_avg" "pingpong" "lat_avg" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
-    gen_plot_file "sockets_pp_999" "pingpong" "lat_999" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
-    gen_plot_file "sockets_lat_avg" "latency" "lat_avg" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
-    gen_plot_file "sockets_lat_999" "latency" "lat_999" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "sockets_pp_avg" "pingpong" "lat_avg" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "sockets_pp_999" "pingpong" "lat_999" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "sockets_lat_avg" "latency" "lat_avg" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "sockets_lat_999" "latency" "lat_999" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
 
-    gen_plot_file "sockets_lat_999" "latency" "lat_999" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
+    gen_plot_file "sockets_lat_999" "latency" "lat_999" "tp_pkt_send" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8" "red" "green" "blue"
 
-    gen_plot_file "all_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [GB/s]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
-    gen_plot_file "all_tp_uni" "bidirectional" "tp_data_combined" "tp_pkt_combined" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [GB/s]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
+    gen_plot_file "all_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
+    gen_plot_file "all_tp_uni" "bidirectional" "tp_data_combined" "tp_pkt_combined" "ib_send_bw|ib_write_bw|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
 
-    gen_plot_file "all_pp_avg" "pingpong" "lat_avg" "tp_pkt_send" "CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
-    gen_plot_file "all_pp_999" "pingpong" "lat_999" "tp_pkt_send" "CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
-    gen_plot_file "all_lat_avg" "latency" "lat_avg" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
-    gen_plot_file "all_lat_999" "latency" "lat_999" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "true" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
+    gen_plot_file "all_pp_avg" "pingpong" "lat_avg" "tp_pkt_send" "CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
+    gen_plot_file "all_pp_999" "pingpong" "lat_999" "tp_pkt_send" "CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
+    gen_plot_file "all_lat_avg" "latency" "lat_avg" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
+    gen_plot_file "all_lat_999" "latency" "lat_999" "tp_pkt_send" "ib_send_lat|ib_write_lat|CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Latency [us]" "Messages [mmps]" "#001b7837" "#007fbf7b" "#00762a83" "#00af8dc3" "#00e7d4e8"
 }
 
 plot_all()
