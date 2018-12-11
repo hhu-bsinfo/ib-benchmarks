@@ -407,6 +407,7 @@ public class JSocketBench {
                 System.out.printf("%f\n", p99);
                 System.out.printf("%f\n", p999);
                 System.out.printf("%f\n", p9999);
+                System.out.printf("%f\n", sendPktsRate);
             }
         } else {
             double sendAvgThroughputMib = totalData / sendTimeSec / ((double) 1024) / ((double) 1024);
@@ -430,7 +431,7 @@ public class JSocketBench {
                 System.out.printf("  Average recv packet per second: %.2f kPkts/s\n",
                         recvPktsRate);
                 System.out.printf("  Average combined packet per second: %.2f kPkts/s\n",
-                        recvPktsRate);
+                        sendPktsRate + recvPktsRate);
                 System.out.printf("  Average send throughput:     %.2f MiB/s (%.2f MB/s)\n",
                         sendAvgThroughputMib, sendAvgThroughputMb);
                 System.out.printf("  Average recv throughput:     %.2f MiB/s (%.2f MB/s)\n",
