@@ -2,7 +2,7 @@
 
 #PBS -l select=2:ncpus=24:mem=64GB:arch=skylake
 #PBS -l place=scatter
-#PBS -l walltime=48:00:00
+#PBS -l walltime=99:00:00
 #PBS -r n
 #PBS -A DXRAM
 #PBS -q bsinfo
