@@ -26,4 +26,8 @@ cd ~ || exit 1
 
 cat "${PBS_NODEFILE}" > pbs_nodes
 
-pbsdsh -v "${BENCHMARK_PATH}/hilbert.sh" "${BENCHMARK_PATH}" "${JAVA_PATH}" "${J9_JAVA_PATH}" "${LIBVMA_PATH}"
+# Delete/Create this before running pbsdsh to avoid race conditions
+rm -rf $RESULTS_OUTPATH
+mkdir -p $RESULTS_OUTPATH
+
+pbsdsh -v "${BENCHMARK_PATH}/hilbert.sh" "${RESULTS_OUTPATH}" "${BENCHMARK_PATH}" "${JAVA_PATH}" "${J9_JAVA_PATH}" "${LIBVMA_PATH}"
