@@ -487,8 +487,8 @@ gen_plot_file()
         plot+="set logscale y 10\\n"
         plot+="set yrange [0:10000]\\n"
         plot+="set ylabel '${y1label}'\\n\
-               plot for [i=1:words(FILES)] word(FILES,i) using 0:1:2:3 title word(LABELS,i) axes x1y1 with yerrorbars lt rgb word(COLORS,i) dt i pt POINT_TYPE[i], \
-                    for [i=1:words(FILES)] word(FILES,i) using 0:1 notitle axes x1y1 with lines lt rgb word(COLORS,i) dt i"
+               plot for [i=1:words(FILES)] word(FILES,i) using 0:1:2:3 title word(LABELS,i) axes x1y1 with yerrorbars lt rgb word(COLORS,i) dt 1 pt POINT_TYPE[i], \
+                    for [i=1:words(FILES)] word(FILES,i) using 0:1 notitle axes x1y1 with lines lt rgb word(COLORS,i) dt 1"
     else
         if [ "${benchmark}" = "latency" ] || [ "${benchmark}" = "pingpong" ]; then
             plot+="set logscale y 10\\n"
@@ -586,8 +586,7 @@ assemble_results()
     # significantly. However, to determine the (worst case) per paket overhead, we have to do this
     # on a pingpong type benchmark which eliminates any kind of implicit aggregation.
 
-    gen_plot_file "verbs_overhead" "pingpong" "overhead_perc_send" "" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Avg. Per Message Overhead [%]" ""
-    gen_plot_file "sockets_overhead" "pingpong" "overhead_perc_send" "" "JSOR|libvma|JSocketBench" "Message size [Bytes]" "Avg. Per Message Overhead [%]" ""
+    gen_plot_file "overhead" "pingpong" "overhead_perc_send" "" "CVerbsBench|JVerbsBench|JSOR|libvma|JSocketBench" "Message size [Bytes]" "Avg. Per Message Overhead [%]" ""
 
     gen_plot_file "verbs_tp_uni" "unidirectional" "tp_data_send" "tp_pkt_send" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" 
     gen_plot_file "verbs_tp_bi" "bidirectional" "tp_data_combined" "tp_pkt_combined" "CVerbsBench|JVerbsBench" "Message size [Bytes]" "Messages [mmps]" "Throughput [MB/s]" 
