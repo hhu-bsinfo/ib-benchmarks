@@ -408,7 +408,7 @@ void print_results() {
 
     if(!strcmp(benchmark, "pingpong") || !strcmp(benchmark, "latency")) {
         long double total_time_sec = send_total_time / ((long double) 1000000000);
-        long double send_pkts_rate = (count / (total_time_sec / ((long double) 1000000000)) / ((long double) 1000000));
+        long double send_pkts_rate = count / total_time_sec / ((long double) 1000000);
 
         if(!strcmp(mode, "server")) {
             // First, sort results to allow determining percentiles
