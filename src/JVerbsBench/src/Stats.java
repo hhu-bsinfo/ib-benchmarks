@@ -60,9 +60,23 @@ public class Stats {
      * @return Time in us.
      */
     public double getMaxUs() {
-        return times[0] / 1000.0;
+        return times[pos - 1] / 1000.0;
     }
 
+    /**
+     * Get the total time in us.
+     *
+     * @return Time in us.
+     */
+    public double getTotalUs() {
+        double tmp = 0;
+
+        for (int i = 0; i < pos; i++) {
+            tmp += times[i] / 1000.0;
+        }
+
+        return tmp;
+    }
 
     /**
      * Get the average time in us.
@@ -70,13 +84,7 @@ public class Stats {
      * @return Time in us.
      */
     public double getAvgUs() {
-        double tmp = 0;
-
-        for (int i = 0; i < pos; i++) {
-            tmp += times[i] / 1000.0;
-        }
-
-        return tmp / pos;
+        return getTotalUs() / pos;
     }
 
     /**

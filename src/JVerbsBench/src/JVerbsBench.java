@@ -423,12 +423,18 @@ public class JVerbsBench {
      */
     private void printResults() {
         long totalData = messageCount * bufSize;
-        double sendTimeSec = (double) benchmarks.getSendTime() / 1000000000.0;
-        double recvTimeSec = (double)  benchmarks.getRecvTime() / 1000000000.0;
         Stats stats = benchmarks.getStatistics();
 
-        double sendPktsRate = (messageCount / sendTimeSec / ((double) 1000000));
-        double recvPktsRate = recvTimeSec == 0 ? 0 : (messageCount / recvTimeSec / ((double) 1000000));
+        double sendTimeSec;
+        double recvTimeSec;
+
+        if(benchmark == BENCHMARK.PINGPONG || benchmark == BENCHMARK.LATENCY) {
+            sendTimeSec = stats.getTotalUs() / 1000000.0;
+            recvTimeSec = 0;
+        } else {
+            sendTimeSec = (double) benchmarks.getSendTime() / 1000000000.0;
+            recvTimeSec = (double) benchmarks.getRecvTime() / 1000000000.0;
+        }
 
         // Even if we only send data, a few bytes will also be received, because of the RC-protocol,
         // so if recvTime is 0, we just set it to sendTime,
@@ -438,6 +444,9 @@ public class JVerbsBench {
         } else if (sendTimeSec == 0) {
             recvTimeSec = 0;
         }
+
+        double sendPktsRate = (messageCount / sendTimeSec / ((double) 1000000));
+        double recvPktsRate = recvTimeSec == 0 ? 0 : (messageCount / recvTimeSec / ((double) 1000000));
 
         if(benchmark == BENCHMARK.PINGPONG || benchmark == BENCHMARK.LATENCY) {
             // First, sort results to allow determining percentiles
