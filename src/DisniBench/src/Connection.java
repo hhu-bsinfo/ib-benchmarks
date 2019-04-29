@@ -174,7 +174,7 @@ class Connection {
         // Create connection id
         try {
             id = eventChannel.createId(RdmaCm.RDMA_PS_TCP);
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.ERROR_AND_EXIT("Unable to create connection id! Error: %s", e.getMessage());
         }
 
@@ -195,7 +195,7 @@ class Connection {
             }
 
             event.ackEvent();
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.ERROR_AND_EXIT("CONNECTION", "Unable to resolve address! Error: %s", e.getMessage());
         }
 
@@ -213,7 +213,7 @@ class Connection {
             }
 
             event.ackEvent();
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.ERROR_AND_EXIT("CONNECTION", "Unable to resolve route! Error: %s", e.getMessage());
         }
 
@@ -249,7 +249,7 @@ class Connection {
             }
 
             event.ackEvent();
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.ERROR_AND_EXIT("CONNECTION", "Unable to connect to remote host! Error: %s", e.getMessage());
         }
 
@@ -264,7 +264,7 @@ class Connection {
             }
 
             socket.connect(new InetSocketAddress(hostname, port));
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
             Log.ERROR_AND_EXIT("CONNECTION", "Unable to open socket! Error: %s", e.getMessage());
         }
 
@@ -287,7 +287,7 @@ class Connection {
 
         try {
             serverId = eventChannel.createId(RdmaCm.RDMA_PS_TCP);
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.ERROR_AND_EXIT("Unable to create connection id! Error: %s", e.getMessage());
         }
 
@@ -317,7 +317,7 @@ class Connection {
             event.ackEvent();
 
             id = event.getConnIdPriv();
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.ERROR_AND_EXIT("CONNECTION", "Error while accepting an incoming connection! Error: %s",
                     e.getMessage());
         }
@@ -353,7 +353,7 @@ class Connection {
             }
 
             event.ackEvent();
-        } catch(Exception e) {
+        } catch(IOException e) {
             Log.ERROR_AND_EXIT("CONNECTION",
                     "Error while accepting an incoming connection! Error: Received wrong event type '%s'",
                     e.getMessage());
@@ -369,7 +369,7 @@ class Connection {
             }
 
             socket = Objects.requireNonNull(serverSocket).accept();
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.ERROR_AND_EXIT("CONNECTION", "Error while accepting an incoming connection! Error: %s",
                     e.getMessage());
         }
@@ -400,7 +400,7 @@ class Connection {
 
             Log.INFO("CONNECTION", "Successfully exchanged rdma information with the remote host! " +
                     "Received: 0x%08x, 0x%016x", remoteKey, remoteAddress);
-        } catch(Exception e) {
+        } catch(IOException e) {
             Log.ERROR_AND_EXIT("CONNECTION",
                     "Unable to exchange rdma information with the remote host! Error: %s", e.getMessage());
         }
@@ -474,7 +474,7 @@ class Connection {
      *
      * @param msgCount The amount of messages to be sent
      */
-    void recvMessages(long msgCount) throws Exception {
+    void recvMessages(long msgCount) throws IOException {
         if(msgCount <= 0) {
             return;
         }

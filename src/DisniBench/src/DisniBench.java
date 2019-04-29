@@ -646,7 +646,7 @@ public class DisniBench {
                 Log.WARN("MAIN", "Not running with root privileges. " +
                         "If any errors occur, try restarting as root!");
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.WARN("MAIN", "Unable to determine user id! Error: %s", e.getMessage());
         }
 
@@ -654,7 +654,7 @@ public class DisniBench {
             try {
                 loadNativeLibraryFromJar("/libIbPerfCounter.so");
                 Log.INFO("MAIN", "Successfully loaded native library 'libIbPerfCounter.so'");
-            } catch (Exception e) {
+            } catch (IOException e) {
                 Log.ERROR_AND_EXIT("MAIN", "Unable to load native library 'libIbPerfCounter.so'! Error: %s",
                         e.getMessage());
             }

@@ -110,7 +110,7 @@ class VerbsWrapper {
      * @param id The connection id, from which to get the context
      * @param queueSize Desired size of the queue pair and completion queue
      */
-    VerbsWrapper(RdmaCmId id, int queueSize) throws Exception {
+    VerbsWrapper(RdmaCmId id, int queueSize) throws IOException {
         this.queueSize = queueSize;
 
         // Get context
@@ -158,7 +158,7 @@ class VerbsWrapper {
      *
      * @return The registered memory region
      */
-    IbvMr registerMemoryRegion(ByteBuffer buffer) throws Exception {
+    IbvMr registerMemoryRegion(ByteBuffer buffer) throws IOException {
         int accessFlags = IbvMr.IBV_ACCESS_LOCAL_WRITE  |
                 IbvMr.IBV_ACCESS_REMOTE_WRITE |
                 IbvMr.IBV_ACCESS_REMOTE_READ;

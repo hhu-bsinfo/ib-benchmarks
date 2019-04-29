@@ -1,5 +1,6 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 
 /**
  * Contains the benchmarks.
@@ -87,7 +88,7 @@ class Benchmarks {
             }
 
             endTime = System.nanoTime();
-        } catch(Exception e) {
+        } catch(IOException e) {
             Log.ERROR_AND_EXIT("SEND THREAD", "An error occurred, while sending a message!" +
                     " Error: '%s'", e.getMessage());
         }
@@ -172,8 +173,8 @@ class Benchmarks {
             }
 
             endTime = System.nanoTime();
-        } catch (Exception e) {
-            Log.ERROR_AND_EXIT("RECV THREAD", "An error occured, while receiving a message!" +
+        } catch (IOException e) {
+            Log.ERROR_AND_EXIT("RECV THREAD", "An error occurred, while receiving a message!" +
                     " Error: '%s'", e.getMessage());
         }
 
@@ -245,7 +246,7 @@ class Benchmarks {
             }
 
             endTime = System.nanoTime();
-        } catch(Exception e) {
+        } catch(IOException e) {
             Log.ERROR_AND_EXIT("SEND THREAD", "An error occurred, while sending a message!" +
                     " Error: '%s'", e.getMessage());
         }
@@ -260,7 +261,7 @@ class Benchmarks {
             DataOutputStream outStream = new DataOutputStream(connection.getSocket().getOutputStream());
 
             outStream.write("close".getBytes());
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.ERROR_AND_EXIT("SEND THREAD", "An error occurred, while sending 'close'! Error: '%s'",
                     e.getMessage());
         }
@@ -329,7 +330,7 @@ class Benchmarks {
             }
 
             endTime = System.nanoTime();
-        } catch(Exception e) {
+        } catch(IOException e) {
             Log.ERROR_AND_EXIT("SEND THREAD", "An error occurred, while sending a message!" +
                     " Error: '%s'", e.getMessage());
         }
@@ -344,7 +345,7 @@ class Benchmarks {
             DataOutputStream outStream = new DataOutputStream(connection.getSocket().getOutputStream());
 
             outStream.write("close".getBytes());
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.ERROR_AND_EXIT("SEND THREAD", "An error occurred, while sending 'close'! Error: '%s'",
                     e.getMessage());
         }
@@ -373,7 +374,7 @@ class Benchmarks {
             DataInputStream inStream = new DataInputStream(connection.getSocket().getInputStream());
 
             inStream.readFully(buf);
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.ERROR_AND_EXIT("RECV THREAD", "An error occurred, while receiving 'close'! Error: '%s'",
                     e.getMessage());
         }
@@ -436,7 +437,7 @@ class Benchmarks {
             }
 
             endTime = System.nanoTime();
-        } catch(Exception e) {
+        } catch(IOException e) {
             Log.ERROR_AND_EXIT("SERVER THREAD", "An error occurred, while sending or receiving a message!" +
                     " Error: '%s'", e.getMessage());
         }
@@ -489,7 +490,7 @@ class Benchmarks {
             }
 
             endTime = System.nanoTime();
-        } catch(Exception e) {
+        } catch(IOException e) {
             Log.ERROR_AND_EXIT("CLIENT THREAD", "An error occurred, while sending or receiving a message!" +
                     " Error: '%s'", e.getMessage());
         }
@@ -540,7 +541,7 @@ class Benchmarks {
             }
 
             endTime = System.nanoTime();
-        } catch(Exception e) {
+        } catch(IOException e) {
             Log.ERROR_AND_EXIT("SERVER THREAD", "An error occurred, while sending or receiving a message!" +
                     " Error: '%s'", e.getMessage());
         }
@@ -604,7 +605,7 @@ class Benchmarks {
             }
 
             endTime = System.nanoTime();
-        } catch(Exception e) {
+        } catch(IOException e) {
             Log.ERROR_AND_EXIT("CLIENT THREAD", "An error occurred, while sending or receiving a message!" +
                     " Error: '%s'", e.getMessage());
         }
@@ -653,7 +654,7 @@ class Benchmarks {
             }
 
             endTime = System.nanoTime();
-        } catch(Exception e) {
+        } catch(IOException e) {
             Log.ERROR_AND_EXIT("SERVER THREAD", "An error occurred, while sending or receiving a message!" +
                     " Error: '%s'", e.getMessage());
         }
@@ -668,7 +669,7 @@ class Benchmarks {
             DataOutputStream outStream = new DataOutputStream(connection.getSocket().getOutputStream());
 
             outStream.write("close".getBytes());
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.ERROR_AND_EXIT("SEND THREAD", "An error occurred, while sending 'close'! Error: '%s'",
                     e.getMessage());
         }
@@ -699,7 +700,7 @@ class Benchmarks {
             DataInputStream inStream = new DataInputStream(connection.getSocket().getInputStream());
 
             inStream.readFully(buf);
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.ERROR_AND_EXIT("CLIENT THREAD", "An error occurred, while receiving 'close'! Error: '%s'",
                     e.getMessage());
         }
@@ -750,7 +751,7 @@ class Benchmarks {
             }
 
             endTime = System.nanoTime();
-        } catch(Exception e) {
+        } catch(IOException e) {
             Log.ERROR_AND_EXIT("SERVER THREAD", "An error occurred, while sending or receiving a message!" +
                     " Error: '%s'", e.getMessage());
         }
@@ -765,7 +766,7 @@ class Benchmarks {
             DataOutputStream outStream = new DataOutputStream(connection.getSocket().getOutputStream());
 
             outStream.write("close".getBytes());
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.ERROR_AND_EXIT("SEND THREAD", "An error occurred, while sending 'close'! Error: '%s'",
                     e.getMessage());
         }
@@ -796,7 +797,7 @@ class Benchmarks {
             DataInputStream inStream = new DataInputStream(connection.getSocket().getInputStream());
 
             inStream.readFully(buf);
-        } catch (Exception e) {
+        } catch (IOException e) {
             Log.ERROR_AND_EXIT("CLIENT THREAD", "An error occurred, while receiving 'close'! Error: '%s'",
                     e.getMessage());
         }
