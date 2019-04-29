@@ -14,7 +14,7 @@ print_usage()
     printf "Usage: ./build_all.sh [OPTION...]
     Available options:
     -j, --java
-        Set the path to your default JDK, which will be used to build JSocketBench.
+        Set the path to your default JDK, which will be used to build JSocketBench and DisniBench.
     -i, --ibm-java
         Set the path to your J9 JDK, which will be used to build JVerbsBench.
     -m, --mode
@@ -158,6 +158,7 @@ generate_all_docs()
     generate_doc "CVerbsBench"
     generate_doc "JSocketBench"
     generate_doc "JVerbsBench"
+    generate_doc "DisniBench"
 }
 
 build_all()
@@ -166,8 +167,10 @@ build_all()
 
     if [ -z "${JAVA_PATH}" ]; then
         build "JSocketBench" "./gradlew build"
+        build "DisniBench" "./gradlew build"
     else
         build "JSocketBench" "./gradlew build -Dorg.gradle.java.home=${JAVA_PATH}"
+        build "DisniBench" "./gradlew build -Dorg.gradle.java.home=${JAVA_PATH}"
     fi
 
     if [ -z "${J9_JAVA_PATH}" ]; then
@@ -182,6 +185,7 @@ clean_all()
     clean "CVerbsBench" "rm -rf build/"
     clean "JSocketBench" "./gradlew clean"
     clean "JVerbsBench" "./gradlew clean"
+    clean "DisniBench" "./gradlew clean"
 }
 
 ##################################################################
