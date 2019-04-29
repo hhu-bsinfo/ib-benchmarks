@@ -25,7 +25,7 @@ print_usage()
     printf "Usage: ./run_all.sh [OPTION...]
     Available options:
     -j, --java
-        Set the path to your default JVM, which will be used to run JSocketBench (default: 'java').
+        Set the path to your default JVM, which will be used to run JSocketBench and DisniBench (default: 'java').
     -i, --ibm-java
         Set the path to your J9 JVM, which will be used to run JVerbsBench (default: 'java').
     -l, --libvma
@@ -663,6 +663,7 @@ JSOCKET_CMD="${JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JSoc
 LIBVMA_CMD="sudo VMA_TRACELEVEL=0 LD_PRELOAD=${LIBVMA_PATH} ${JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
 JSOR_CMD="IBM_JAVA_RDMA_SBUF_SIZE=1048576 IBM_JAVA_RDMA_RBUF_SIZE=1048576 ${J9_JAVA_PATH}/bin/java -Dcom.ibm.net.rdma.conf=src/JSocketBench/jsor_${MODE}.conf -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
 JVERBS_CMD="${J9_JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JVerbsBench/build/libs/JVerbsBench.jar"
+DISNI_CMD="${JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/DisniBench/build/libs/DisniBench.jar"
 
 ##################################################################
 # Benchmarks
@@ -700,6 +701,18 @@ if [ "$PROCESS_RESULTS_ONLY" != "1" ]; then
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "msg"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "rdma"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "rdmar"
+
+    # DiSNI
+    run_benchmark_series "DisniBench" "${DISNI_CMD}" "unidirectional" "msg"
+    run_benchmark_series "DisniBench" "${DISNI_CMD}" "bidirectional" "msg"
+    run_benchmark_series "DisniBench" "${DISNI_CMD}" "unidirectional" "rdma"
+    run_benchmark_series "DisniBench" "${DISNI_CMD}" "bidirectional" "rdma"
+    run_benchmark_series "DisniBench" "${DISNI_CMD}" "unidirectional" "rdmar"
+    run_benchmark_series "DisniBench" "${DISNI_CMD}" "bidirectional" "rdmar"
+    run_benchmark_series "DisniBench" "${DISNI_CMD}" "pingpong" "msg"
+    run_benchmark_series "DisniBench" "${DISNI_CMD}" "latency" "msg"
+    run_benchmark_series "DisniBench" "${DISNI_CMD}" "latency" "rdma"
+    run_benchmark_series "DisniBench" "${DISNI_CMD}" "latency" "rdmar"
 
     # JSOR (IBM JVM)
     run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
