@@ -169,11 +169,11 @@ class Connection {
      * @param port The TCP-port
      */
     void connectToServer(String bindAddress, String hostname, int port) {
-        /*Log.INFO("CONNECTION", "Connecting to server '%s'...", hostname);
+        Log.INFO("CONNECTION", "Connecting to server '%s'...", hostname);
 
         // Create connection id
         try {
-            id = ConnectionId.create(eventChannel, PortSpace.RDMA_PS_TCP);
+            id = eventChannel.createId(RdmaCm.RDMA_PS_TCP);
         } catch (Exception e) {
             Log.ERROR_AND_EXIT("Unable to create connection id! Error: %s", e.getMessage());
         }
@@ -181,20 +181,20 @@ class Connection {
         // Resolve address
         try {
             if (bindAddress == null || bindAddress.isEmpty()) {
-                id.resolveAddress(new InetSocketAddress(port), new InetSocketAddress(hostname, port), 5000);
+                id.resolveAddr(new InetSocketAddress(port), new InetSocketAddress(hostname, port), 5000);
             } else {
-                id.resolveAddress(new InetSocketAddress(bindAddress, port),
+                id.resolveAddr(new InetSocketAddress(bindAddress, port),
                         new InetSocketAddress(hostname, port), 5000);
             }
 
-            ConnectionEvent event = eventChannel.getConnectionEvent(-1);
+            RdmaCmEvent event = eventChannel.getCmEvent(-1);
 
-            if(event.getEventType() != ConnectionEvent.EventType.RDMA_CM_EVENT_ADDR_RESOLVED) {
+            if(event.getEvent() != RdmaCmEvent.EventType.RDMA_CM_EVENT_ADDR_RESOLVED.ordinal()) {
                 Log.ERROR_AND_EXIT("CONNECTION",
-                        "Unable to resolve address! Error: Received wrong event type '%s'", event.getEventType());
+                        "Unable to resolve address! Error: Received wrong event type '%d'", event.getEvent());
             }
 
-            eventChannel.ackConnectionEvent(event);
+            event.ackEvent();
         } catch (Exception e) {
             Log.ERROR_AND_EXIT("CONNECTION", "Unable to resolve address! Error: %s", e.getMessage());
         }
@@ -205,14 +205,14 @@ class Connection {
         try {
             id.resolveRoute(5000);
 
-            ConnectionEvent event = eventChannel.getConnectionEvent(-1);
+            RdmaCmEvent event = eventChannel.getCmEvent(-1);
 
-            if(event.getEventType() != ConnectionEvent.EventType.RDMA_CM_EVENT_ROUTE_RESOLVED) {
+            if(event.getEvent() != RdmaCmEvent.EventType.RDMA_CM_EVENT_ROUTE_RESOLVED.ordinal()) {
                 Log.ERROR_AND_EXIT("CONNECTION",
-                        "Unable to resolve address! Error: Received wrong event type '%s'", event.getEventType());
+                        "Unable to resolve address! Error: Received wrong event type '%d'", event.getEvent());
             }
 
-            eventChannel.ackConnectionEvent(event);
+            event.ackEvent();
         } catch (Exception e) {
             Log.ERROR_AND_EXIT("CONNECTION", "Unable to resolve route! Error: %s", e.getMessage());
         }
@@ -221,34 +221,34 @@ class Connection {
 
         // Establish connection
         try {
-            wrapper = new JVerbsWrapper(id, queueSize);
+            wrapper = new VerbsWrapper(id, queueSize);
 
             sendRegion = wrapper.registerMemoryRegion(sendBuf);
             recvRegion = wrapper.registerMemoryRegion(recvBuf);
 
-            ScatterGatherElement sendSge = new ScatterGatherElement();
-            sendSge.setAddress(sendRegion.getAddress());
+            IbvSge sendSge = new IbvSge();
+            sendSge.setAddr(sendRegion.getAddr());
             sendSge.setLength(sendRegion.getLength());
-            sendSge.setLocalKey(sendRegion.getLocalKey());
+            sendSge.setLkey(sendRegion.getLkey());
             sendSges.add(sendSge);
 
-            ScatterGatherElement recvSge = new ScatterGatherElement();
-            recvSge.setAddress(recvRegion.getAddress());
+            IbvSge recvSge = new IbvSge();
+            recvSge.setAddr(recvRegion.getAddr());
             recvSge.setLength(recvRegion.getLength());
-            recvSge.setLocalKey(recvRegion.getLocalKey());
+            recvSge.setLkey(recvRegion.getLkey());
             recvSges.add(recvSge);
 
             id.connect(connectionParams);
 
-            ConnectionEvent event = eventChannel.getConnectionEvent(-1);
+            RdmaCmEvent event = eventChannel.getCmEvent(-1);
 
-            if(event.getEventType() != ConnectionEvent.EventType.RDMA_CM_EVENT_ESTABLISHED) {
+            if(event.getEvent() != RdmaCmEvent.EventType.RDMA_CM_EVENT_ESTABLISHED.ordinal()) {
                 Log.ERROR_AND_EXIT("CONNECTION",
-                        "Unable to connect to remote host! Error: Received wrong event type '%s'",
-                        event.getEventType());
+                        "Unable to connect to remote host! Error: Received wrong event type '%d'",
+                        event.getEvent());
             }
 
-            eventChannel.ackConnectionEvent(event);
+            event.ackEvent();
         } catch (Exception e) {
             Log.ERROR_AND_EXIT("CONNECTION", "Unable to connect to remote host! Error: %s", e.getMessage());
         }
@@ -270,7 +270,7 @@ class Connection {
 
         exchangeRdmaInfo();
 
-        Log.INFO("CONNECTION", "Successfully connected to remote host!");*/
+        Log.INFO("CONNECTION", "Successfully connected to remote host!");
     }
 
     /**
