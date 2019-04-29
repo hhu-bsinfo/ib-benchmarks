@@ -1,0 +1,61 @@
+import org.gradle.internal.jvm.Jvm
+
+plugins {
+    id 'java'
+}
+
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+sourceSets.main.java.srcDirs = ['src']
+
+apply plugin: 'c'
+
+model {
+    components {
+        IbPerfCounter(NativeLibrarySpec) {
+            sources {
+                c {
+                    source {
+                        srcDir "src/IbPerfCounter"
+                        include "**/*.c"
+                    }
+
+                    exportedHeaders {
+                        srcDirs "src/IbPerfCounter",
+                                "${Jvm.current().javaHome}/include",
+                                "${Jvm.current().javaHome}/include/linux"
+                    }
+                }
+            }
+
+            binaries.all {
+                cCompiler.args << "-std=c99"
+                cCompiler.args << "-I/usr/include/infiniband"
+                linker.args << "-libverbs"
+                linker.args << "-libmad"
+            }
+        }
+    }
+}
+
+compileJava.dependsOn "IbPerfCounterSharedLibrary"
+
+jar {
+    from('build/libs/ibPerfCounter/shared/libIbPerfCounter.so') {
+        include 'libIbPerfCounter.so'
+    }
+
+    manifest {
+        attributes 'Main-Class': 'DisniBench'
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.ibm.disni:disni:2.0'
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
