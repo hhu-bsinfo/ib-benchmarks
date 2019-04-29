@@ -167,10 +167,10 @@ build_all()
 
     if [ -z "${JAVA_PATH}" ]; then
         build "JSocketBench" "./gradlew build"
-        build "DisniBench" "./gradlew build"
+        build "DisniBench" "./gradlew shadowJar"
     else
         build "JSocketBench" "./gradlew build -Dorg.gradle.java.home=${JAVA_PATH}"
-        build "DisniBench" "./gradlew build -Dorg.gradle.java.home=${JAVA_PATH}"
+        build "DisniBench" "./gradlew shadowJar -Dorg.gradle.java.home=${JAVA_PATH}"
     fi
 
     if [ -z "${J9_JAVA_PATH}" ]; then
