@@ -663,7 +663,7 @@ JSOCKET_CMD="${JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JSoc
 LIBVMA_CMD="sudo VMA_TRACELEVEL=0 LD_PRELOAD=${LIBVMA_PATH} ${JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
 JSOR_CMD="IBM_JAVA_RDMA_SBUF_SIZE=1048576 IBM_JAVA_RDMA_RBUF_SIZE=1048576 ${J9_JAVA_PATH}/bin/java -Dcom.ibm.net.rdma.conf=src/JSocketBench/jsor_${MODE}.conf -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
 JVERBS_CMD="${J9_JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JVerbsBench/build/libs/JVerbsBench.jar"
-DISNI_CMD="${JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/DisniBench/build/libs/DisniBench.jar"
+DISNI_CMD="${JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/DisniBench/build/libs/DisniBench-all.jar"
 
 ##################################################################
 # Benchmarks
