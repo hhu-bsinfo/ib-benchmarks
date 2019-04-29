@@ -2,6 +2,7 @@ import org.gradle.internal.jvm.Jvm
 
 plugins {
     id 'java'
+    id "com.github.johnrengelman.shadow" version "4.0.4"
 }
 
 version '1.0-SNAPSHOT'
@@ -10,6 +11,7 @@ sourceCompatibility = 1.8
 sourceSets.main.java.srcDirs = ['src']
 
 apply plugin: 'c'
+apply plugin: "com.github.johnrengelman.shadow"
 
 model {
     components {
@@ -42,6 +44,16 @@ model {
 compileJava.dependsOn "IbPerfCounterSharedLibrary"
 
 jar {
+    from('build/libs/ibPerfCounter/shared/libIbPerfCounter.so') {
+        include 'libIbPerfCounter.so'
+    }
+
+    manifest {
+        attributes 'Main-Class': 'DisniBench'
+    }
+}
+
+shadowJar {
     from('build/libs/ibPerfCounter/shared/libIbPerfCounter.so') {
         include 'libIbPerfCounter.so'
     }
