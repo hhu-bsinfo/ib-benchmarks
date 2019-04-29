@@ -565,7 +565,7 @@ class Connection {
 
         for(int i = 0; i < polled; i++) {
             if(workComps[i].getStatus() != IbvWC.IbvWcStatus.IBV_WC_SUCCESS.ordinal()) {
-                Log.ERROR_AND_EXIT("CONNECTION", "Work completion failed! Status: %d" +
+                Log.ERROR_AND_EXIT("CONNECTION", "Work completion failed! Status: %d",
                         workComps[i].getStatus());
             }
         }
