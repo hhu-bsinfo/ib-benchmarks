@@ -133,19 +133,19 @@ class Connection {
         try {
             this.connectionParams.setResponder_resources((byte) 1);
         } catch (Exception e) {
-            Log.WARN("CONNETION", "Unable to set connection parameter 'Initiator depth'! Error: '%s'", e.getMessage());
+            Log.WARN("CONNETION", "Unable to set connection parameter 'Responder resources'! Error: '%s'", e.getMessage());
         }
 
         try{
             this.connectionParams.setRetry_count((byte) 3);
         } catch (Exception e) {
-            Log.WARN("CONNETION", "Unable to set connection parameter 'Initiator depth'! Error: '%s'", e.getMessage());
+            Log.WARN("CONNETION", "Unable to set connection parameter 'Retry count'! Error: '%s'", e.getMessage());
         }
 
         try {
             this.connectionParams.setRnr_retry_count((byte) 6);
         } catch (Exception e) {
-            Log.WARN("CONNETION", "Unable to set connection parameter 'Initiator depth'! Error: '%s'", e.getMessage());
+            Log.WARN("CONNETION", "Unable to set connection parameter 'RNR Retry count'! Error: '%s'", e.getMessage());
         }
 
         this.queueSize = queueSize;
