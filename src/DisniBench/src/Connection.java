@@ -126,11 +126,26 @@ class Connection {
 
         try {
             this.connectionParams.setInitiator_depth((byte) 1);
+        } catch (Exception e) {
+            Log.WARN("CONNETION", "Unable to set connection parameter 'Initiator depth'! Error: '%s'", e.getMessage());
+        }
+
+        try {
             this.connectionParams.setResponder_resources((byte) 1);
+        } catch (Exception e) {
+            Log.WARN("CONNETION", "Unable to set connection parameter 'Initiator depth'! Error: '%s'", e.getMessage());
+        }
+
+        try{
             this.connectionParams.setRetry_count((byte) 3);
+        } catch (Exception e) {
+            Log.WARN("CONNETION", "Unable to set connection parameter 'Initiator depth'! Error: '%s'", e.getMessage());
+        }
+
+        try {
             this.connectionParams.setRnr_retry_count((byte) 6);
-        } catch (IOException e) {
-            Log.WARN("CONNETION", "Unable to set connection parameters! Error: '%s'", e.getMessage());
+        } catch (Exception e) {
+            Log.WARN("CONNETION", "Unable to set connection parameter 'Initiator depth'! Error: '%s'", e.getMessage());
         }
 
         this.queueSize = queueSize;
