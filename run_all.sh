@@ -190,9 +190,12 @@ benchmark()
     mkdir -p "${outpath}/logfiles"
 
     local logfile="${outpath}/logfiles/${name}_${benchmark}_${transport}_${size}_${MODE}.log"
-    touch $logfile
+    local errfile="${outpath}/logfiles/${name}_${benchmark}_${transport}_${size}_${MODE}.err"    
 
-    eval "${cmd} ${params[*]}" > $logfile 2>&1
+    touch $logfile
+    touch $errfile
+
+    eval "${cmd} ${params[*]}" > $logfile 2>errfile
 
     local output="$(cat $logfile)"
 
@@ -345,9 +348,13 @@ perftest_benchmark() {
     mkdir -p "${outpath}/logfiles"
 
     local logfile="${outpath}/logfiles/${name}_${benchmark}_${transport}_${size}_${MODE}.log"
+    local errfile="${outpath}/logfiles/${name}_${benchmark}_${transport}_${size}_${MODE}.err"
+
+    touch $logfile
+    touch $errfile
 
     LOG_INFO "Running 'sudo %s ${params[*]}'..." "${name}"
-    eval "sudo ${name} ${params[*]}" > "$logfile" 2>&1
+    eval "sudo ${name} ${params[*]}" > "$logfile" 2>errfile
 
     if [ $? -eq 0 ]; then
         LOG_INFO "Benchmark exited successfully!\\n"
@@ -663,7 +670,7 @@ JSOCKET_CMD="${JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JSoc
 LIBVMA_CMD="sudo VMA_TRACELEVEL=0 LD_PRELOAD=${LIBVMA_PATH} ${JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
 JSOR_CMD="IBM_JAVA_RDMA_SBUF_SIZE=1048576 IBM_JAVA_RDMA_RBUF_SIZE=1048576 ${J9_JAVA_PATH}/bin/java -Dcom.ibm.net.rdma.conf=src/JSocketBench/jsor_${MODE}.conf -Djava.net.preferIPv4Stack=true -jar src/JSocketBench/build/libs/JSocketBench.jar"
 JVERBS_CMD="${J9_JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/JVerbsBench/build/libs/JVerbsBench.jar"
-DISNI_CMD="${JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/DisniBench/build/libs/DisniBench-all.jar"
+DISNI_CMD="LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HOME} ${JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/DisniBench/build/libs/DisniBench-all.jar"
 
 ##################################################################
 # Benchmarks
@@ -671,66 +678,66 @@ DISNI_CMD="${JAVA_PATH}/bin/java -Djava.net.preferIPv4Stack=true -jar src/DisniB
 
 if [ "$PROCESS_RESULTS_ONLY" != "1" ]; then
     # ib perf tools included in OFED package
-    run_perftest_series "ib_send_bw" "unidirectional" "msg"
-    run_perftest_series "ib_send_bw" "bidirectional" "msg"
-    run_perftest_series "ib_write_bw" "unidirectional" "rdma"
-    run_perftest_series "ib_write_bw" "bidirectional" "rdma"
-    run_perftest_series "ib_send_lat" "latency" "msg"
-    run_perftest_series "ib_write_lat" "latency" "rdma"
+#    run_perftest_series "ib_send_bw" "unidirectional" "msg"
+#    run_perftest_series "ib_send_bw" "bidirectional" "msg"
+#    run_perftest_series "ib_write_bw" "unidirectional" "rdma"
+#    run_perftest_series "ib_write_bw" "bidirectional" "rdma"
+#    run_perftest_series "ib_send_lat" "latency" "msg"
+#    run_perftest_series "ib_write_lat" "latency" "rdma"
 
     # libverbs (native C)
-    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "msg"
-    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "msg"
+#    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "msg"
+#    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "msg"
     run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "rdma"
     run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "rdma"
     run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "unidirectional" "rdmar"
     run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "bidirectional" "rdmar"
     run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "pingpong" "msg"
-    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "msg"
+#    run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "msg"
     run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "rdma"
     run_benchmark_series "CVerbsBench" "${CVERBS_CMD}" "latency" "rdmar"
 
     # jVerbs (IBM JVM)
-    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "msg"
-    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "msg"
+#    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "msg"
+#    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "msg"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdma"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdma"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "unidirectional" "rdmar"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "bidirectional" "rdmar"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "pingpong" "msg"
-    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "msg"
+#    run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "msg"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "rdma"
     run_benchmark_series "JVerbsBench" "${JVERBS_CMD}" "latency" "rdmar"
 
     # DiSNI
-    run_benchmark_series "DisniBench" "${DISNI_CMD}" "unidirectional" "msg"
-    run_benchmark_series "DisniBench" "${DISNI_CMD}" "bidirectional" "msg"
+#    run_benchmark_series "DisniBench" "${DISNI_CMD}" "unidirectional" "msg"
+#    run_benchmark_series "DisniBench" "${DISNI_CMD}" "bidirectional" "msg"
     run_benchmark_series "DisniBench" "${DISNI_CMD}" "unidirectional" "rdma"
     run_benchmark_series "DisniBench" "${DISNI_CMD}" "bidirectional" "rdma"
     run_benchmark_series "DisniBench" "${DISNI_CMD}" "unidirectional" "rdmar"
     run_benchmark_series "DisniBench" "${DISNI_CMD}" "bidirectional" "rdmar"
     run_benchmark_series "DisniBench" "${DISNI_CMD}" "pingpong" "msg"
-    run_benchmark_series "DisniBench" "${DISNI_CMD}" "latency" "msg"
+#    run_benchmark_series "DisniBench" "${DISNI_CMD}" "latency" "msg"
     run_benchmark_series "DisniBench" "${DISNI_CMD}" "latency" "rdma"
     run_benchmark_series "DisniBench" "${DISNI_CMD}" "latency" "rdmar"
 
     # JSOR (IBM JVM)
-    run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
+#    run_benchmark_series "JSOR" "${JSOR_CMD}" "unidirectional"
     # bidirectional missing: errors on small packages, does not terminate with large packages
-    run_benchmark_series "JSOR" "${JSOR_CMD}" "pingpong"
-    run_benchmark_series "JSOR" "${JSOR_CMD}" "latency"
+#    run_benchmark_series "JSOR" "${JSOR_CMD}" "pingpong"
+#    run_benchmark_series "JSOR" "${JSOR_CMD}" "latency"
 
     # libvma library
-    run_benchmark_series "libvma" "${LIBVMA_CMD}" "unidirectional"
-    run_benchmark_series "libvma" "${LIBVMA_CMD}" "bidirectional"
-    run_benchmark_series "libvma" "${LIBVMA_CMD}" "pingpong"
-    run_benchmark_series "libvma" "${LIBVMA_CMD}" "latency"
+#    run_benchmark_series "libvma" "${LIBVMA_CMD}" "unidirectional"
+#    run_benchmark_series "libvma" "${LIBVMA_CMD}" "bidirectional"
+#    run_benchmark_series "libvma" "${LIBVMA_CMD}" "pingpong"
+#    run_benchmark_series "libvma" "${LIBVMA_CMD}" "latency"
 
     # IPoIB using normal Java sockets
-    run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "unidirectional"
-    run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "bidirectional"
-    run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "pingpong"
-    run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "latency"
+#    run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "unidirectional"
+#    run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "bidirectional"
+#    run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "pingpong"
+#    run_benchmark_series "JSocketBench" "${JSOCKET_CMD}" "latency"
 else
     LOG_INFO "Skipping benchmarks, processing results only"
 fi

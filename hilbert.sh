@@ -1,5 +1,7 @@
 #!/bin/bash
 
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${HOME}
+
 readonly SCRIPT_DIR="$( cd "$(dirname "${BASH_SOURCE[0]}")" && pwd )"
 
 readonly NODES=($( < pbs_nodes ))

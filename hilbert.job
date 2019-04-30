@@ -5,13 +5,12 @@
 #PBS -l walltime=99:00:00
 #PBS -r n
 #PBS -A DXRAM
-#PBS -q bsinfo
-
-cd ~/jib-benchmarks
 
 module load gcc/8.1.0
 module load cmake/3.11.2
 module load Java/1.8.0_151
+
+cd ~/Projekte/jib-benchmarks/
 
 # Import config
 source ./settings.conf
