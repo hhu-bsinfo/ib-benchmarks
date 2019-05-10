@@ -1,2 +1,9 @@
 rootProject.name = 'DisniBench'
 
+if (new File('../disni').exists()) {
+    includeBuild('../disni') {
+        dependencySubstitution {
+            substitute module('com.github.hhu-bsinfo:disni') with project(':')
+        }
+    }
+}
